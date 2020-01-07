@@ -230,6 +230,7 @@ threads = []
 probes.each do |msg_type, conf|
     threads << Thread.new do
         ProbeRunner.monitor_loop(hyperv, conf[:path], conf[:period], xml_txt) do |rc, da|
+            da.strip!
             next if da.empty?
 
             client.send(msg_type, rc == 0, da)
