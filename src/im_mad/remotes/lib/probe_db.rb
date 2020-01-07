@@ -53,57 +53,54 @@ class VirtualMachineDB
         time = Time.now.to_i
         vms  = DomainList.state_info
 
-        known_ids = []
+        monitor_ids = []
 
         # ----------------------------------------------------------------------
         # report state changes in vms
         # ----------------------------------------------------------------------
-        vms.each do |uuid, vm|
-            vm_db = @dataset.first(:uuid => uuid)
+        vms.each do |_uuid, vm|
+            vm_db = @dataset.first(:id => vm[:id])
 
-            known_ids << vm[:uuid]
+            monitor_ids << vm[:id].to_i
 
-            if vm_db.nil? || vm_db.empty?
+            if vm_db.nil?
                 @dataset.insert({
-                    :uuid      => uuid,
-                    :timestamp => time,
-                    :id        => vm[:id],
+                    :id        => vm[:id].to_i,
                     :name      => vm[:name],
+                    :timestamp => time,
+                    :missing   => 0,
                     :state     => vm[:state],
-                    :hyperv    => @conf[:hyperv],
-                    :missing   => 0
+                    :hyperv    => @conf[:hyperv]
                 })
+
+                status_str << vm_to_status(vm)
                 next
             end
 
+            @dataset.where(:id => vm[:id]).update(:state     => vm[:state],
+                                                  :missing   => 0,
+                                                  :timestamp => time)
             next if vm_db[:state] == vm[:state]
 
-            status_str << "VM = [ ID=\"#{vm[:id]}\", "
-            status_str << "DEPLOY_ID=\"#{vm[:name]}\", "
-            status_str << "STATE=\"#{vm[:state]}\" ]\n"
-
-            @dataset.where(:uuid => uuid).update(:state => vm[:state],
-                                                 :timestamp => time)
+            status_str << vm_to_status(vm)
         end
 
         # ----------------------------------------------------------------------
         # check missing VMs
         # ----------------------------------------------------------------------
-        (@dataset.map(:uuid) - known_ids).each do |uuid|
-            vm_db = @dataset.first(:uuid => uuid)
+        (@dataset.map(:id) - monitor_ids).each do |id|
+            vm_db = @dataset.first(:id => id)
 
-            next if vm_db.nil? || vm_db.empty?
+            next if vm_db.nil?
 
             miss = vm_db[:missing]
 
-            if miss > @conf[:times_missing]
-                status_str << "VM = [ ID=\"#{vm_db[:id]}\", "
-                status_str << "DEPLOY_ID=\"#{vm_db[:name]}\", "
-                status_str << "STATE=\"#{@conf[:missing_state]}\" ]\n"
+            if miss == @conf[:times_missing] # report once
+                status_str << vm_to_status(vm_db, @conf[:missing_state])
             end
 
-            @dataset.where(:uuid => uuid).update(:timestamp => time,
-                                                 :missing   => miss + 1)
+            @dataset.where(:id => id).update(:timestamp => time,
+                                             :missing   => miss + 1)
         end
 
         status_str
@@ -116,14 +113,20 @@ class VirtualMachineDB
         return if @db.table_exists?(:states)
 
         @db.create_table :states do
-            String  :uuid, primary_key: true
-            Integer :id
+            Integer :id, primary_key: true
             String  :name
             Integer :timestamp
             Integer :missing
             String  :state
             String  :hyperv
         end
+    end
+
+    private
+
+    def vm_to_status(vm, state = vm[:state])
+        "VM = [ ID=\"#{vm[:id]}\, DEPLOY_ID=\"#{vm[:name]}\", " \
+        "STATE=\"#{state}\" ]\n"
     end
 
 end
