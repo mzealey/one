@@ -59,7 +59,7 @@ class VirtualMachineDB
         # report state changes in vms
         # ----------------------------------------------------------------------
         vms.each do |uuid, vm|
-            vm_db = @dataset.first(:id => uuid)
+            vm_db = @dataset.first(:uuid => uuid)
 
             known_ids << vm[:uuid]
 
