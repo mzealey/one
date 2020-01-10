@@ -63,11 +63,7 @@ class MonitorClient
         @socket_udp = UDPSocket.new(addr[0])
         @socket_udp.connect(addr[3], addr[1])
 
-        if @opts[:pubkey].empty?
-            @pubkey = nil
-        else
-            @pubkey = OpenSSL::PKey::RSA.new @opts[:pubkey]
-        end
+        @pubkey = @opts[:pubkey]
 
         @hostid = id
     end
@@ -76,14 +72,12 @@ class MonitorClient
 
     # Formats message payload to send over the wire
     def pack(data)
+        data = @pubkey.public_encrypt(data) if @pubkey
+
         zdata  = Zlib::Deflate.deflate(data, Zlib::BEST_COMPRESSION)
         data64 = Base64.strict_encode64(zdata)
 
-        if @pubkey
-            @key_pub.public_encrypt(data64)
-        else
-            data64
-        end
+        data64
     end
 
 end
@@ -197,6 +191,22 @@ begin
             :path => 'vm/monitor'
         }
     }
+
+    if !pubkey.empty?
+        m = pubkey.match(/(-+BEGIN RSA PUBLIC KEY-+)([^-]*)(-+END RSA PUBLIC KEY-+)/)
+
+        if !m
+            puts 'Public key not in PEM format'
+            exit(-1)
+        end
+
+        pktxt = m[2].strip.tr(' ', "\n")
+
+        pubkey = OpenSSL::PKey::RSA.new "-----BEGIN RSA PUBLIC KEY-----\n" \
+            "#{pktxt}\n-----END RSA PUBLIC KEY-----"
+    else
+        pubkey = nil
+    end
 rescue StandardError => e
     puts e.inspect
     exit(-1)
@@ -207,6 +217,7 @@ end
 #-------------------------------------------------------------------------------
 
 VirtualMachineDB.unlink_db(hyperv)
+
 
 client = MonitorClient.new(host, port, hostid, :pubkey => pubkey)
 
