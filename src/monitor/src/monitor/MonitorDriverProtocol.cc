@@ -35,7 +35,58 @@ void MonitorDriverProtocol::_undefined(message_t msg)
 
 void MonitorDriverProtocol::_monitor_vm(message_t msg)
 {
+    NebulaLog::ddebug("MDP", "Received MONITOR_VM msg: " + msg->payload());
 
+    char * error_msg;
+
+    Template tmpl;
+    int rc = tmpl.parse(msg->payload(), &error_msg);
+
+    if (rc != 0)
+    {
+        NebulaLog::error("MDP", msg->payload());
+        NebulaLog::error("MDP", string("Error parsing VM monitoring template: ")
+                + error_msg);
+
+        free(error_msg);
+        return;
+    }
+
+    int id;
+    string deploy_id;
+    string monitor_b64;
+
+    vector<VectorAttribute*> vms;
+    tmpl.get("VM", vms);
+    for (const auto& vm : vms)
+    {
+        if (vm->vector_value("ID", id) != 0)
+        {
+            id = -1;
+        }
+        vm->vector_value("DEPLOY_ID", deploy_id);
+        vm->vector_value("MONITOR", monitor_b64);
+
+        auto monitor_plain = one_util::base64_decode(monitor_b64);
+
+        if (monitor_plain != nullptr)
+        {
+            Template mon_tmpl;
+            rc = mon_tmpl.parse(*monitor_plain, &error_msg);
+
+            if (rc != 0)
+            {
+                NebulaLog::error("MDP", "Error parsing VM monitor attribute: "
+                    + *monitor_plain + ", error: " + error_msg);
+
+                free(error_msg);
+                continue;
+            }
+
+            hm->monitor_vm(id, mon_tmpl, deploy_id);
+            delete monitor_plain;
+        }
+    }
 }
 
 /* -------------------------------------------------------------------------- */

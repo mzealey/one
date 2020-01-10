@@ -1490,9 +1490,6 @@ void VirtualMachineManager::timer_action(const ActionRequest& ar)
         mark = 0;
     }
 
-    // Clear the expired monitoring records
-    vmpool->clean_expired_monitoring();
-
     // Skip monitoring the first poll_period to allow the Host monitoring to
     // gather the VM info (or if it is disabled)
     if ( timer_start + poll_period > thetime || !do_vm_poll)

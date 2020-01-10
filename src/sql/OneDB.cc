@@ -50,4 +50,38 @@ namespace one_db
         "   last_mon_time INTEGER,"
         "   body MEDIUMTEXT,"
         "   PRIMARY KEY(hid, last_mon_time))";
+
+    /* ---------------------------------------------------------------------- */
+    /* VM TABLES                                                              */
+    /* ---------------------------------------------------------------------- */
+    const char * vm_table = "vm_pool";
+
+    const char * vm_db_names =
+        "oid, name, body, uid, gid, last_poll, state, lcm_state, "
+        "owner_u, group_u, other_u, short_body, search_token";
+
+    const char * vm_db_bootstrap = "CREATE TABLE IF NOT EXISTS "
+        "vm_pool (oid INTEGER PRIMARY KEY, name VARCHAR(128), body MEDIUMTEXT, "
+        "uid INTEGER, gid INTEGER, last_poll INTEGER, state INTEGER, "
+        "lcm_state INTEGER, owner_u INTEGER, group_u INTEGER, other_u INTEGER, "
+        "short_body MEDIUMTEXT, search_token MEDIUMTEXT";
+
+    const char * vm_monitor_table = "vm_monitoring";
+
+    const char * vm_monitor_db_names = "vmid, last_poll, body";
+
+    const char * vm_monitor_db_bootstrap = "CREATE TABLE IF NOT EXISTS "
+        "vm_monitoring (vmid INTEGER, last_poll INTEGER, body MEDIUMTEXT, "
+        "PRIMARY KEY(vmid, last_poll))";
+
+
+    const char * vm_showback_table = "vm_showback";
+
+    const char * vm_showback_db_names = "vmid, year, month, body";
+
+    const char * vm_showback_db_bootstrap =
+        "CREATE TABLE IF NOT EXISTS vm_showback "
+        "(vmid INTEGER, year INTEGER, month INTEGER, body MEDIUMTEXT, "
+        "PRIMARY KEY(vmid, year, month))";
+
 }

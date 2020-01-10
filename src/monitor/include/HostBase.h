@@ -19,7 +19,6 @@
 #include <set>
 #include "BaseObject.h"
 #include "ObjectCollection.h"
-#include "HostMonitoringTemplate.h"
 #include "Host.h"   // For HostState, can we moved it to reduce dependencies?
 
 

@@ -42,21 +42,15 @@ VirtualMachinePool::VirtualMachinePool(
         SqlDB * db,
         vector<const SingleAttribute *>& restricted_attrs,
         vector<const SingleAttribute *>& encrypted_attrs,
-        time_t  expire_time,
         bool    on_hold,
         float   default_cpu_cost,
         float   default_mem_cost,
         float   default_disk_cost)
-    : PoolSQL(db, VirtualMachine::table),
-    _monitor_expiration(expire_time), _submit_on_hold(on_hold),
+    : PoolSQL(db, one_db::vm_table),
+    _submit_on_hold(on_hold),
     _default_cpu_cost(default_cpu_cost), _default_mem_cost(default_mem_cost),
     _default_disk_cost(default_disk_cost)
 {
-    if ( _monitor_expiration == 0 )
-    {
-        clean_all_monitoring();
-    }
-
     // Set restricted attributes
     VirtualMachineTemplate::parse_restricted(restricted_attrs);
 
@@ -141,7 +135,7 @@ void VirtualMachinePool::drop_index(const string& deploy_id)
 
 /* -------------------------------------------------------------------------- */
 
-int VirtualMachinePool::allocate (
+int VirtualMachinePool::allocate(
     int            uid,
     int            gid,
     const string&  uname,
@@ -249,7 +243,7 @@ int VirtualMachinePool::get_running(
 
     where = os.str();
 
-    return PoolSQL::search(oids,VirtualMachine::table,where);
+    return PoolSQL::search(oids, one_db::vm_table, where);
 };
 
 /* -------------------------------------------------------------------------- */
@@ -265,7 +259,7 @@ int VirtualMachinePool::get_pending(
 
     where = os.str();
 
-    return PoolSQL::search(oids,VirtualMachine::table,where);
+    return PoolSQL::search(oids, one_db::vm_table, where);
 };
 
 /* -------------------------------------------------------------------------- */
@@ -277,7 +271,7 @@ int VirtualMachinePool::dump_acct(string& oss, const string&  where,
     ostringstream cmd;
 
     cmd << "SELECT " << History::table << ".body FROM " << History::table
-        << " INNER JOIN " << VirtualMachine::table
+        << " INNER JOIN " << one_db::vm_table
         << " WHERE vid=oid";
 
     if ( !where.empty() )
@@ -315,9 +309,9 @@ int VirtualMachinePool::dump_showback(string& oss,
 {
     ostringstream cmd;
 
-    cmd << "SELECT " << VirtualMachine::showback_table << ".body FROM "
-        << VirtualMachine::showback_table
-        << " INNER JOIN " << VirtualMachine::table
+    cmd << "SELECT " << one_db::vm_showback_table << ".body FROM "
+        << one_db::vm_showback_table
+        << " INNER JOIN " << one_db::vm_table
         << " WHERE vmid=oid";
 
     if ( !where.empty() )
@@ -349,54 +343,15 @@ int VirtualMachinePool::dump_showback(string& oss,
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
-int VirtualMachinePool::clean_expired_monitoring()
-{
-    if ( _monitor_expiration == 0 )
-    {
-        return 0;
-    }
-
-    time_t          max_last_poll;
-    int             rc;
-    ostringstream   oss;
-
-    max_last_poll = time(0) - _monitor_expiration;
-
-    oss << "DELETE FROM " << VirtualMachine::monit_table
-        << " WHERE last_poll < " << max_last_poll;
-
-    rc = db->exec_local_wr(oss);
-
-    return rc;
-}
-
-/* -------------------------------------------------------------------------- */
-/* -------------------------------------------------------------------------- */
-
-int VirtualMachinePool::clean_all_monitoring()
-{
-    ostringstream   oss;
-    int             rc;
-
-    oss << "DELETE FROM " << VirtualMachine::monit_table;
-
-    rc = db->exec_local_wr(oss);
-
-    return rc;
-}
-
-/* -------------------------------------------------------------------------- */
-/* -------------------------------------------------------------------------- */
-
 int VirtualMachinePool::dump_monitoring(
         string& oss,
         const string&  where)
 {
     ostringstream cmd;
 
-    cmd << "SELECT " << VirtualMachine::monit_table << ".body FROM "
-        << VirtualMachine::monit_table
-        << " INNER JOIN " << VirtualMachine::table
+    cmd << "SELECT " << one_db::vm_monitor_table << ".body FROM "
+        << one_db::vm_monitor_table
+        << " INNER JOIN " << one_db::vm_table
         << " WHERE vmid = oid";
 
     if ( !where.empty() )
@@ -404,7 +359,7 @@ int VirtualMachinePool::dump_monitoring(
         cmd << " AND " << where;
     }
 
-    cmd << " ORDER BY vmid, " << VirtualMachine::monit_table << ".last_poll;";
+    cmd << " ORDER BY vmid, " << one_db::vm_monitor_table << ".last_poll;";
 
     return PoolSQL::dump(oss, "MONITORING_DATA", cmd);
 }
@@ -412,7 +367,7 @@ int VirtualMachinePool::dump_monitoring(
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
-int VirtualMachinePool::get_vmid (const string& deploy_id)
+int VirtualMachinePool::get_vmid(const string& deploy_id)
 {
     int rc;
     int vmid = -1;
@@ -748,8 +703,8 @@ int VirtualMachinePool::calculate_showback(
     {
         oss.str("");
 
-        oss << "REPLACE INTO " << VirtualMachine::showback_table
-            << " ("<< VirtualMachine::showback_db_names <<") VALUES ";
+        oss << "REPLACE INTO " << one_db::vm_showback_table
+            << " ("<< one_db::vm_showback_db_names <<") VALUES ";
 
         sql_cmd_start = oss.str();
 
@@ -761,14 +716,14 @@ int VirtualMachinePool::calculate_showback(
     {
         oss.str("");
         oss << "BEGIN TRANSACTION; "
-            << "REPLACE INTO " << VirtualMachine::showback_table
-            << " ("<< VirtualMachine::showback_db_names <<") VALUES ";
+            << "REPLACE INTO " << one_db::vm_showback_table
+            << " ("<< one_db::vm_showback_db_names <<") VALUES ";
 
         sql_cmd_start = oss.str();
 
         oss.str("");
-        oss << "; REPLACE INTO " << VirtualMachine::showback_table
-            << " ("<< VirtualMachine::showback_db_names <<") VALUES ";
+        oss << "; REPLACE INTO " << one_db::vm_showback_table
+            << " ("<< one_db::vm_showback_db_names <<") VALUES ";
 
         sql_cmd_separator = oss.str();
 

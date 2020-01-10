@@ -131,11 +131,13 @@ void Monitor::start()
     // Pools
     // -------------------------------------------------------------------------
     time_t host_exp;
+    time_t vm_exp;
 
     config->get("HOST_MONITORING_EXPIRATION_TIME", host_exp);
+    config->get("VM_MONITORING_EXPIRATION_TIME", vm_exp);
 
     hpool.reset(new HostRPCPool(sqlDB.get(), host_exp));
-    vmpool.reset(new VMRPCPool(sqlDB.get()));
+    vmpool.reset(new VMRPCPool(sqlDB.get(), vm_exp));
 
     // -------------------------------------------------------------------------
     // Close stds in drivers
@@ -183,7 +185,7 @@ void Monitor::start()
         udp_conf->replace("PUBKEY", buffer.str());
     }
 
-    hm.reset(new HostMonitorManager(hpool.get(),
+    hm.reset(new HostMonitorManager(hpool.get(), vmpool.get(),
                 addr, port, threads,
                 get_mad_location(),
                 timer_period,

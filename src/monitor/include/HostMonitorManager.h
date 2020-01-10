@@ -19,6 +19,7 @@
 
 #include "MonitorDriverMessages.h"
 #include "HostRPCPool.h"
+
 #include <vector>
 
 class Template;
@@ -27,6 +28,7 @@ class VectorAttribute;
 template<typename E, typename D>
 class DriverManager;
 
+class VMRPCPool;
 class OneMonitorDriver;
 class UDPMonitorDriver;
 class MonitorDriver;
@@ -40,7 +42,7 @@ class Monitor;
 class HostMonitorManager
 {
 public:
-    HostMonitorManager(HostRPCPool *hp,
+    HostMonitorManager(HostRPCPool *hp, VMRPCPool *vmp,
             const std::string& addr, unsigned int port, unsigned int threads,
             const std::string& driver_path,
             int timer_period,
@@ -97,7 +99,18 @@ public:
      *    @param oid host id
      *    @param tmpl monitoring template
      */
-    void monitor_host(int oid, bool result, Template &tmpl);
+    void monitor_host(int oid, bool result, const Template &tmpl);
+
+    /**
+     *  Sets the monitor information of the VM.
+     *    @param oid VM id
+     *    @param result
+     *    @param tmpl monitoring template
+     *    @param deploy_id
+     */
+    void monitor_vm(int oid,
+                    const Template &tmpl,
+                    const std::string deploy_id);
 
     /**
      *  Receive start monitor failure/success from driver
@@ -122,6 +135,8 @@ private:
     UDPMonitorDriver* udp_driver;
 
     HostRPCPool* hpool;
+
+    VMRPCPool* vmpool;
 
     unsigned int udp_threads;
 

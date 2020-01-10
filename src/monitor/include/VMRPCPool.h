@@ -17,6 +17,7 @@
 #define VM_RPC_POOL_H_
 
 #include "VirtualMachineBase.h"
+#include "VMMonitoringTemplate.h"
 #include "RPCPool.h"
 
 // Provides list of HostBase objects
@@ -25,14 +26,32 @@ class VMRPCPool : public RPCPool
 public:
     using VirtualMachineBaseLock = BaseObjectLock<VirtualMachineBase>;
 
-    explicit VMRPCPool(SqlDB* db)
-    : RPCPool(db)
-    {}
+    VMRPCPool(SqlDB* db, time_t expire_time)
+        : RPCPool(db)
+        , monitor_expiration(expire_time)
+    {
+        if (monitor_expiration <=0)
+        {
+            clean_all_monitoring();
+        }
+    }
 
     VirtualMachineBaseLock get(int oid) const
     {
         return RPCPool::get<VirtualMachineBase>(oid);
     }
+
+    /**
+     * Deletes the expired monitoring entries for all VMs
+     *
+     * @return 0 on success
+     */
+    int clean_expired_monitoring();
+
+    /**
+     *  Write monitoring data to DB
+     */
+    int update_monitoring(const VMMonitoringTemplate& vm);
 
 protected:
     int load_info(xmlrpc_c::value &result) override;
@@ -48,7 +67,15 @@ protected:
         RPCPool::add_object<VirtualMachineBase>(node);
     }
 
+    /**
+     * Deletes all monitoring entries for all VMs
+     *
+     * @return 0 on success
+     */
+    void clean_all_monitoring();
+
 private:
+    time_t monitor_expiration;
 };
 
 #endif // VM_RPC_POOL_H_

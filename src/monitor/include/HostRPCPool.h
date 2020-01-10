@@ -17,6 +17,7 @@
 #define HOST_RPC_POOL_H_
 
 #include "HostBase.h"
+#include "HostMonitoringTemplate.h"
 #include "RPCPool.h"
 
 // Provides list of HostBase objects
@@ -80,6 +81,11 @@ protected:
         RPCPool::add_object<HostBase>(node);
     }
 
+    /**
+     * Deletes all monitoring entries for all hosts
+     *
+     * @return 0 on success
+     */
     void clean_all_monitoring();
 
 private:

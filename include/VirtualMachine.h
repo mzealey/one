@@ -1868,14 +1868,6 @@ private:
     };
 
     /**
-     * Inserts the last monitoring, and deletes old monitoring entries.
-     *
-     * @param db pointer to the db
-     * @return 0 on success
-     */
-    int update_monitoring(SqlDB * db);
-
-    /**
      * Updates the VM search information.
      *
      * @param db pointer to the db
@@ -2194,24 +2186,6 @@ protected:
     // *************************************************************************
     // DataBase implementation
     // *************************************************************************
-
-    static const char * table;
-
-    static const char * db_names;
-
-    static const char * db_bootstrap;
-
-    static const char * monit_table;
-
-    static const char * monit_db_names;
-
-    static const char * monit_db_bootstrap;
-
-    static const char * showback_table;
-
-    static const char * showback_db_names;
-
-    static const char * showback_db_bootstrap;
 
     /**
      *  Reads the Virtual Machine (identified with its OID) from the database.

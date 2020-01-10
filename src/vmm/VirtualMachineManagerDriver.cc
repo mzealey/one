@@ -746,7 +746,7 @@ void VirtualMachineManagerDriver::process_poll(VirtualMachine* vm,
         {
             vmpool->update_history(vm);
 
-            vmpool->update_monitoring(vm);
+            //vmpool->update_monitoring(vm);
         }
 
         vmpool->update(vm);

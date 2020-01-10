@@ -36,6 +36,26 @@ namespace one_db
     extern const char * host_monitor_db_names;
 
     extern const char * host_monitor_db_bootstrap;
+
+    extern const char * vm_table;
+
+    extern const char * vm_db_names;
+
+    extern const char * vm_db_bootstrap;
+
+    extern const char * vm_monitor_table;
+
+    extern const char * vm_monitor_db_names;
+
+    extern const char * vm_monitor_db_bootstrap;
+
+    extern const char * vm_showback_table;
+
+    extern const char * vm_showback_db_names;
+
+    extern const char * vm_showback_db_bootstrap;
+
+
 }
 
 #endif /*ONE_DB_H_*/

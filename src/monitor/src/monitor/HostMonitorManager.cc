@@ -15,9 +15,9 @@
 /* -------------------------------------------------------------------------- */
 #include "NebulaLog.h"
 
-#include "HostRPCPool.h"
 #include "HostMonitorManager.h"
 #include "Monitor.h"
+#include "VMRPCPool.h"
 
 #include "Driver.h"
 #include "DriverManager.h"
@@ -37,6 +37,7 @@ const time_t HostMonitorManager::monitor_expire = 300;
 
 HostMonitorManager::HostMonitorManager(
         HostRPCPool *      hp,
+        VMRPCPool *        vmp,
         const std::string& addr,
         unsigned int       port,
         unsigned int       threads,
@@ -44,6 +45,7 @@ HostMonitorManager::HostMonitorManager(
         int                timer_period,
         int                monitor_interval_host)
     : hpool(hp)
+    , vmpool(vmp)
     , udp_threads(threads)
     , timer_period(timer_period)
     , monitor_interval_host(monitor_interval_host)
@@ -203,7 +205,7 @@ void HostMonitorManager::stop_host_monitor(int oid)
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
-void HostMonitorManager::monitor_host(int oid, bool result, Template &tmpl)
+void HostMonitorManager::monitor_host(int oid, bool result, const Template &tmpl)
 {
     auto host = hpool->get(oid);
 
@@ -262,6 +264,34 @@ void HostMonitorManager::monitor_host(int oid, bool result, Template &tmpl)
     {
         oned_driver->host_state(oid, Host::state_to_str(Host::HostState::MONITORED));
     }
+}
+
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+void HostMonitorManager::monitor_vm(int oid,
+                                    const Template &tmpl,
+                                    const std::string deploy_id)
+{
+    VMMonitoringTemplate monitoring;
+
+    monitoring.oid(oid);
+    monitoring.timestamp(time(nullptr));
+
+    if (monitoring.from_template(tmpl) != 0 || monitoring.oid() == -1)
+    {
+        string str;
+        NebulaLog::log("HMM", Log::ERROR, "Error parsing monitoring template: "
+                + tmpl.to_str(str));
+        return;
+    }
+
+    if (vmpool->update_monitoring(monitoring) != 0)
+    {
+        NebulaLog::log("HMM", Log::ERROR, "Unable to write monitoring to DB");
+        return;
+    };
+
+    NebulaLog::info("HMM", "Successfully monitored VM: " + to_string(oid));
 }
 
 /* -------------------------------------------------------------------------- */
@@ -326,6 +356,7 @@ void HostMonitorManager::timer_action()
 
 
     hpool->clean_expired_monitoring();
+    vmpool->clean_expired_monitoring();
 
     set<int> discovered_hosts;
     time_t now = time(nullptr);

@@ -44,7 +44,7 @@ VirtualMachine::VirtualMachine(int           id,
                                const string& _gname,
                                int           umask,
                                VirtualMachineTemplate * _vm_template):
-        PoolObjectSQL(id,VM,"",_uid,_gid,_uname,_gname,table),
+        PoolObjectSQL(id,VM,"",_uid,_gid,_uname,_gname,one_db::vm_table),
         last_poll(0),
         state(INIT),
         prev_state(INIT),
@@ -448,45 +448,13 @@ string VirtualMachine::state_str()
 /* Virtual Machine :: Database Access Functions                               */
 /* ************************************************************************** */
 
-const char * VirtualMachine::table = "vm_pool";
-
-const char * VirtualMachine::db_names =
-    "oid, name, body, uid, gid, last_poll, state, lcm_state, "
-    "owner_u, group_u, other_u, short_body, search_token";
-
-const char * VirtualMachine::db_bootstrap = "CREATE TABLE IF NOT EXISTS "
-    "vm_pool (oid INTEGER PRIMARY KEY, name VARCHAR(128), body MEDIUMTEXT, "
-    "uid INTEGER, gid INTEGER, last_poll INTEGER, state INTEGER, "
-    "lcm_state INTEGER, owner_u INTEGER, group_u INTEGER, other_u INTEGER, "
-    "short_body MEDIUMTEXT, search_token MEDIUMTEXT";
-
-const char * VirtualMachine::monit_table = "vm_monitoring";
-
-const char * VirtualMachine::monit_db_names = "vmid, last_poll, body";
-
-const char * VirtualMachine::monit_db_bootstrap = "CREATE TABLE IF NOT EXISTS "
-    "vm_monitoring (vmid INTEGER, last_poll INTEGER, body MEDIUMTEXT, "
-    "PRIMARY KEY(vmid, last_poll))";
-
-
-const char * VirtualMachine::showback_table = "vm_showback";
-
-const char * VirtualMachine::showback_db_names = "vmid, year, month, body";
-
-const char * VirtualMachine::showback_db_bootstrap =
-    "CREATE TABLE IF NOT EXISTS vm_showback "
-    "(vmid INTEGER, year INTEGER, month INTEGER, body MEDIUMTEXT, "
-    "PRIMARY KEY(vmid, year, month))";
-
-/* -------------------------------------------------------------------------- */
-
 int VirtualMachine::bootstrap(SqlDB * db)
 {
     int rc;
 
     ostringstream oss_vm;
 
-    oss_vm << VirtualMachine::db_bootstrap;
+    oss_vm << one_db::vm_db_bootstrap;
 
     if (db->fts_available())
     {
@@ -497,9 +465,9 @@ int VirtualMachine::bootstrap(SqlDB * db)
         oss_vm << ")";
     }
 
-    ostringstream oss_monit(VirtualMachine::monit_db_bootstrap);
+    ostringstream oss_monit(one_db::vm_monitor_db_bootstrap);
     ostringstream oss_hist(History::db_bootstrap);
-    ostringstream oss_showback(VirtualMachine::showback_db_bootstrap);
+    ostringstream oss_showback(one_db::vm_showback_db_bootstrap);
 
     ostringstream oss_index("CREATE INDEX state_oid_idx on vm_pool (state, oid);");
 
@@ -1720,7 +1688,7 @@ int VirtualMachine::insert_replace(SqlDB *db, bool replace, string& error_str)
 
     if (replace)
     {
-        oss << "UPDATE " << table << " SET "
+        oss << "UPDATE " << one_db::vm_table << " SET "
             << "name = '"         <<  sql_name      << "', "
             << "body = '"         <<  sql_xml       << "', "
             << "uid = "           <<  uid           << ", "
@@ -1736,7 +1704,8 @@ int VirtualMachine::insert_replace(SqlDB *db, bool replace, string& error_str)
     }
     else
     {
-        oss << "INSERT INTO " << table << " ("<< db_names <<") VALUES ("
+        oss << "INSERT INTO " << one_db::vm_table
+            << " ("<< one_db::vm_db_names << ") VALUES ("
             <<        oid           << ","
             << "'" << sql_name      << "',"
             << "'" << sql_xml       << "',"
@@ -1802,85 +1771,13 @@ int VirtualMachine::update_search(SqlDB * db)
         return -1;
     }
 
-    oss << "UPDATE " << table << " SET "
+    oss << "UPDATE " << one_db::vm_table << " SET "
         << "search_token = '" << sql_text << "' "
         << "WHERE oid = " << oid;
 
     db->free_str(sql_text);
 
     return db->exec_local_wr(oss);
-}
-
-/* -------------------------------------------------------------------------- */
-/* -------------------------------------------------------------------------- */
-
-int VirtualMachine::update_monitoring(SqlDB * db)
-{
-    ostringstream oss;
-    int           rc;
-
-    string xml_body;
-    string error_str;
-    char * sql_xml;
-
-    float       cpu = 0;
-    long long   memory = 0;
-
-    obj_template->get("CPU", cpu);
-    obj_template->get("MEMORY", memory);
-
-    oss << "<VM>"
-        << "<ID>" << oid << "</ID>"
-        << "<LAST_POLL>" << last_poll << "</LAST_POLL>"
-        << monitoring.to_xml(xml_body)
-        << "<TEMPLATE>"
-        <<   "<CPU>"    << cpu << "</CPU>"
-        <<   "<MEMORY>" << memory << "</MEMORY>"
-        << "</TEMPLATE>"
-        << "</VM>";
-
-    sql_xml = db->escape_str(oss.str());
-
-    if ( sql_xml == 0 )
-    {
-        goto error_body;
-    }
-
-    if ( validate_xml(sql_xml) != 0 )
-    {
-        goto error_xml;
-    }
-
-    oss.str("");
-
-    oss << "REPLACE INTO " << monit_table << " ("<< monit_db_names <<") VALUES ("
-        <<          oid             << ","
-        <<          last_poll       << ","
-        << "'" <<   sql_xml         << "')";
-
-    db->free_str(sql_xml);
-
-    rc = db->exec_local_wr(oss);
-
-    return rc;
-
-error_xml:
-    db->free_str(sql_xml);
-
-    error_str = "could not transform the VM to XML.";
-
-    goto error_common;
-
-error_body:
-    error_str = "could not insert the VM in the DB.";
-
-error_common:
-    oss.str("");
-    oss << "Error updating VM monitoring information, " << error_str;
-
-    NebulaLog::log("ONE",Log::ERROR, oss);
-
-    return -1;
 }
 
 /* -------------------------------------------------------------------------- */

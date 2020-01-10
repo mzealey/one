@@ -14,52 +14,81 @@
 /* limitations under the License.                                             */
 /* -------------------------------------------------------------------------- */
 
-#include "MonitorConfigTemplate.h"
+#include "VMMonitoringTemplate.h"
+#include "ObjectXML.h"
 
 /* -------------------------------------------------------------------------- */
-/*  Configuration Defaults                                                    */
 /* -------------------------------------------------------------------------- */
-void MonitorConfigTemplate::set_conf_default()
+
+using namespace std;
+
+#define xml_print(name, value) "<"#name">" << value << "</"#name">"
+
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+
+string VMMonitoringTemplate::to_xml() const
 {
-    VectorAttribute * va;
-/*
- MESSAGE_SIZE
- ONE_XMLRPC_TIMEOUT
- ONE_XMLRPC
- HOST_MONITORING_EXPIRATION_TIME
- VM_MONITORING_EXPIRATION_TIME
- LOG
- DB
- UDP_LISTENER
- PROBES_PERIOD
- DATASTORE_LOCATION
- */
-    set_conf_single("MESSAGE_SIZE", "1073741824");
-    set_conf_single("ONE_XMLRPC_TIMEOUT", "60");
-    set_conf_single("ONE_XMLRPC", "http://localhost:2633/RPC2");
+    string monitor_str;
+    ostringstream oss;
 
-    // Timers
-    set_conf_single("MANAGER_TIMER", "15");
-    set_conf_single("MONITORING_INTERVAL_HOST", "180");
-    set_conf_single("HOST_MONITORING_EXPIRATION_TIME", "43200");
-    set_conf_single("VM_MONITORING_EXPIRATION_TIME", "43200");
+    oss << "<MONITORING>";
 
-    va = new VectorAttribute("LOG", {{"SYSTEM", "FILE"}, {"DEBUG_LEVEL", "3"}});
-    conf_default.insert(make_pair(va->name(), va));
+    oss << xml_print(TIMESTAMP, _timestamp);
+    oss << xml_print(ID, _oid);
+    oss << monitoring.to_xml(monitor_str);
 
-    va = new VectorAttribute("DB", {{"BACKEND", "sqlite"}});
-    conf_default.insert(make_pair(va->name(), va));
+    oss << "</MONITORING>";
 
-    va = new VectorAttribute("UDP_LISTENER", {{"ADDRESS", "0.0.0.0"},
-            {"PORT", "4124"}, {"THREADS", "16"}});
-    conf_default.insert(make_pair(va->name(), va));
-
-    va = new VectorAttribute("PROBES_PERIOD", {{"SYSTEM_HOST", "600"},
-            {"MONITOR_HOST", "120"}, {"MONITOR_VM", "90"}, {"STATUS_VM", "10"}});
-    conf_default.insert(make_pair(va->name(), va));
-
-    set_conf_single("DATASTORE_LOCATION", "/var/lib/one/datastores");
+    return oss.str();
 }
 
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
+
+int VMMonitoringTemplate::from_xml(const std::string& xml_string)
+{
+    ObjectXML xml(xml_string);
+
+    int rc = xml.xpath(_timestamp, "/MONITORING/TIMESTAMP", 0L);
+    rc += xml.xpath(_oid, "/MONITORING/ID", -1);
+
+    if (rc < 0)
+    {
+        return -1;
+    }
+
+    vector<xmlNodePtr> content;
+    xml.get_nodes("/MONITORING/TEMPLATE", content);
+
+    if (!content.empty())
+    {
+        monitoring.from_xml_node(content[0]);
+
+        xml.free_nodes(content);
+        content.clear();
+    }
+
+    return 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+
+int VMMonitoringTemplate::from_template(const Template &tmpl)
+{
+    int tmp;
+    if (tmpl.get("OID", tmp))
+    {
+        _oid = tmp;
+    }
+
+    if (_oid < 0)
+    {
+        return -1;
+    }
+
+    monitoring.merge(&tmpl);
+
+    return 0;
+}

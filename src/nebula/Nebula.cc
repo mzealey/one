@@ -632,7 +632,6 @@ void Nebula::start(bool bootstrap_only)
         vector<const SingleAttribute *> vm_restricted_attrs;
         vector<const SingleAttribute *> vm_encrypted_attrs;
 
-        time_t vm_expiration;
         bool   vm_submit_on_hold;
 
         float cpu_cost;
@@ -644,8 +643,6 @@ void Nebula::start(bool bootstrap_only)
         nebula_configuration->get("VM_RESTRICTED_ATTR", vm_restricted_attrs);
 
         nebula_configuration->get("VM_ENCRYPTED_ATTR", vm_encrypted_attrs);
-
-        nebula_configuration->get("VM_MONITORING_EXPIRATION_TIME",vm_expiration);
 
         nebula_configuration->get("VM_SUBMIT_ON_HOLD",vm_submit_on_hold);
 
@@ -667,7 +664,7 @@ void Nebula::start(bool bootstrap_only)
         }
 
         vmpool = new VirtualMachinePool(logdb, vm_restricted_attrs, vm_encrypted_attrs,
-                vm_expiration, vm_submit_on_hold, cpu_cost, mem_cost, disk_cost);
+                vm_submit_on_hold, cpu_cost, mem_cost, disk_cost);
 
         /* ---------------------------- Host Pool --------------------------- */
         vector<const SingleAttribute *> host_encrypted_attrs;

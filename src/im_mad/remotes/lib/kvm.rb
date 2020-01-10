@@ -516,7 +516,7 @@ module DomainList
             @vms.each do |_uuid, vm|
                 next if vm[:id] == -1
 
-                mon_s << "VM = [ ID=\"#{vm[:id]}\", DEPLOY_ID=\"#{vm[:name]}\""
+                mon_s << "VM = [ ID=\"#{vm[:id]}\", DEPLOY_ID=\"#{vm[:name]}\","
                 mon_s << " MONITOR=\"#{vm.to_monitor}\"]\n"
             end
 
@@ -530,7 +530,7 @@ module DomainList
             @vms.each do |_uuid, vm|
                 next if vm[:id] != -1 || vm[:template].empty
 
-                mon_s << "VM = [ ID=\"#{vm[:id]}\", DEPLOY_ID=\"#{vm[:name]}\""
+                mon_s << "VM = [ ID=\"#{vm[:id]}\", DEPLOY_ID=\"#{vm[:name]}\","
                 mon_s << " IMPORT_TEMPLATE=\"#{vm[:template]}\"]\n"
             end
 
