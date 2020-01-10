@@ -23,9 +23,6 @@ void MonitorConfigTemplate::set_conf_default()
 {
     VectorAttribute * va;
 /*
- MESSAGE_SIZE
- ONE_XMLRPC_TIMEOUT
- ONE_XMLRPC
  HOST_MONITORING_EXPIRATION_TIME
  VM_MONITORING_EXPIRATION_TIME
  LOG
@@ -34,9 +31,6 @@ void MonitorConfigTemplate::set_conf_default()
  PROBES_PERIOD
  DATASTORE_LOCATION
  */
-    set_conf_single("MESSAGE_SIZE", "1073741824");
-    set_conf_single("ONE_XMLRPC_TIMEOUT", "60");
-    set_conf_single("ONE_XMLRPC", "http://localhost:2633/RPC2");
 
     // Timers
     set_conf_single("MANAGER_TIMER", "15");

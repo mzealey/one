@@ -19,27 +19,6 @@
 #include "OneDB.h"
 #include "NebulaLog.h"
 
-int HostRPCPool::load_info(xmlrpc_c::value &result)
-{
-    try
-    {
-        client->call("one.hostpool.info", "", &result);
-
-        return 0;
-    }
-    catch (exception const& e)
-    {
-        ostringstream   oss;
-        oss << "Exception raised: " << e.what();
-
-        NebulaLog::log("HOST", Log::ERROR, oss);
-
-        return -1;
-    }
-}
-
-/* -------------------------------------------------------------------------- */
-/* -------------------------------------------------------------------------- */
 
 int HostRPCPool::update_monitoring(const HostMonitoringTemplate& monitoring)
 {

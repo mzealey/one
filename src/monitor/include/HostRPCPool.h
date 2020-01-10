@@ -68,14 +68,6 @@ public:
     void discover(set<int> * discovered_hosts, time_t target_time);
 
 protected:
-    int load_info(xmlrpc_c::value &result) override;
-
-    int get_nodes(const ObjectXML& xml,
-        std::vector<xmlNodePtr>& content) const override
-    {
-        return xml.get_nodes("/HOST_POOL/HOST", content);
-    }
-
     void add_object(xmlNodePtr node) override
     {
         RPCPool::add_object<HostBase>(node);

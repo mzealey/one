@@ -16,7 +16,6 @@
 #ifndef RPC_POOL_H_
 #define RPC_POOL_H_
 
-#include "Client.h"
 #include "BaseObject.h"
 #include "SqlDB.h"
 #include "NebulaLog.h"
@@ -76,12 +75,6 @@ public:
     }
 
     /**
-     *  Read data from server, fill internal structures
-     *   @return 0 on success
-     */
-    int update();
-
-    /**
      *  Execute the given function over each object in the pool
      *    @param f the function
      */
@@ -99,8 +92,7 @@ public:
 protected:
     // ------------------------------------------------------------------------
     explicit RPCPool(SqlDB* _db)
-    : client(Client::client())
-    , db(_db)
+    : db(_db)
     {
     }
 
@@ -119,17 +111,6 @@ protected:
      * Inserts a new BaseObject into the objects map
      */
     virtual void add_object(xmlNodePtr node) = 0;
-
-    /**
-     *  Split list of objects to xml nodes
-     */
-    virtual int get_nodes(const ObjectXML& xml,
-        std::vector<xmlNodePtr>& content) const = 0;
-
-    /**
-     *  Read objects as xml-formatted string from server
-     */
-    virtual int load_info(xmlrpc_c::value &result) = 0;
 
     /**
      *  Inserts object into objects list
@@ -154,11 +135,6 @@ protected:
     // ------------------------------------------------------------------------
     // Attributes
     // ------------------------------------------------------------------------
-    /**
-     * XML-RPC client
-     */
-    Client* client;
-
     /**
      * DB to store monitoring information
      */

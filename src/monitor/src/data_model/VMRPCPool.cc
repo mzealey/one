@@ -81,28 +81,6 @@ int VMRPCPool::clean_expired_monitoring()
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
-int VMRPCPool::load_info(xmlrpc_c::value &result)
-{
-    try
-    {
-        client->call("one.vmpool.infoextended", "iiii", &result, -2, -1, -1, -1);
-
-        return 0;
-    }
-    catch (exception const& e)
-    {
-        ostringstream   oss;
-        oss << "Exception raised: " << e.what();
-
-        NebulaLog::log("VM", Log::ERROR, oss);
-
-        return -1;
-    }
-}
-
-/* -------------------------------------------------------------------------- */
-/* -------------------------------------------------------------------------- */
-
 void VMRPCPool::clean_all_monitoring()
 {
     ostringstream   oss;

@@ -54,14 +54,6 @@ public:
     int update_monitoring(const VMMonitoringTemplate& vm);
 
 protected:
-    int load_info(xmlrpc_c::value &result) override;
-
-    int get_nodes(const ObjectXML& xml,
-        std::vector<xmlNodePtr>& content) const override
-    {
-        return xml.get_nodes("/VM_POOL/VM[STATE=1]", content);
-    }
-
     void add_object(xmlNodePtr node) override
     {
         RPCPool::add_object<VirtualMachineBase>(node);

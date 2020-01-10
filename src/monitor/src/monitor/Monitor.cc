@@ -18,7 +18,6 @@
 #include "MonitorDriver.h"
 #include "MonitorConfigTemplate.h"
 #include "NebulaLog.h"
-#include "Client.h"
 #include "StreamManager.h"
 #include "SqliteDB.h"
 #include "MySqlDB.h"
@@ -71,26 +70,6 @@ void Monitor::start()
     oss << "----------------------------------------";
 
     NebulaLog::info("MON", oss.str());
-
-    // -------------------------------------------------------------------------
-    // XML-RPC Client
-    // -------------------------------------------------------------------------
-    string       one_xmlrpc;
-    long long    message_size;
-    unsigned int timeout;
-
-    config->get("ONE_XMLRPC", one_xmlrpc);
-    config->get("MESSAGE_SIZE", message_size);
-    config->get("ONE_XMLRPC_TIMEOUT", timeout);
-
-    Client::initialize("", one_xmlrpc, message_size, timeout);
-
-    oss.str("");
-
-    oss << "XML-RPC client using " << (Client::client())->get_message_size()
-        << " bytes for response buffer.\n";
-
-    NebulaLog::log("MON", Log::INFO, oss);
 
     xmlInitParser();
 
