@@ -20,18 +20,16 @@ class VirtualMachineDB
         :missing_state => "POWEROFF"
     }
 
+    def self.unlink_db(hyperv, opts = {})
+        conf = VirtualMachineDB.load_conf(hyperv, opts)
+
+        File.unlink(conf[:db_path])
+    rescue StandardError
+    end
+
     def initialize(hyperv, opts = {})
-        conf_path = "#{__dir__}/../../etc/im/#{hyperv}-probes.d/probe_db.conf"
-        etc_conf  = YAML.load_file(conf_path) rescue nil
-
-        @conf = DEFAULT_CONFIGURATION.clone
-        @conf[:hyperv] = hyperv
-
-        @conf.merge! etc_conf if etc_conf
-
-        @conf.merge! opts
-
-        @db = Sequel.connect("sqlite://#{@conf[:db_path]}")
+        @conf = VirtualMachineDB.load_conf(hyperv, opts)
+        @db   = Sequel.connect("sqlite://#{@conf[:db_path]}")
 
         bootstrap
 
@@ -127,6 +125,22 @@ class VirtualMachineDB
     def vm_to_status(vm, state = vm[:state])
         "VM = [ ID=\"#{vm[:id]}\, DEPLOY_ID=\"#{vm[:name]}\", " \
         "STATE=\"#{state}\" ]\n"
+    end
+
+    # Load configuration file and parse user provided options
+    def self.load_conf(hyperv, opts)
+        conf_path = "#{__dir__}/../../etc/im/#{hyperv}-probes.d/probe_db.conf"
+        etc_conf  = YAML.load_file(conf_path) rescue nil
+
+        conf = DEFAULT_CONFIGURATION.clone
+
+        conf.merge! etc_conf if etc_conf
+
+        conf.merge! opts
+
+        conf[:hyperv] = hyperv
+
+        conf
     end
 
 end
