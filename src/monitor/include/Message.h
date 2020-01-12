@@ -38,6 +38,8 @@ int zlib_compress(const std::string& in, std::string& out);
  */
 void init_rsa_keys(const std::string& pub_key, const std::string& pri_key);
 
+bool is_rsa_set();
+
 int rsa_public_encrypt(const std::string& in, std::string& out);
 
 int rsa_private_decrypt(const std::string& in, std::string& out);
@@ -209,9 +211,16 @@ int Message<E>::parse_from(const std::string& input, bool decrypt)
         goto error;
     }
 
-    if ( decrypt && rsa_private_decrypt(_payload, _payload) == -1)
+    if ( decrypt && is_rsa_set())
     {
-        goto error;
+        std::string plain_payload;
+
+        if ( rsa_private_decrypt(_payload, plain_payload) == -1 )
+        {
+            goto error;
+        }
+
+        _payload = plain_payload;
     }
 
     return 0;

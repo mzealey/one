@@ -241,6 +241,11 @@ void init_rsa_keys(const std::string& pub_key, const std::string& pri_key)
     prik_path = pri_key;
 }
 
+bool is_rsa_set()
+{
+    return !prik_path.empty();
+}
+
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
@@ -309,18 +314,39 @@ int rsa_private_decrypt(const std::string& in, std::string& out)
         fclose(fp);
     }
 
+    out.clear();
+
+    int key_size = RSA_size(rsa);
+    int in_size  = in.length();
     char * out_c = (char *) malloc(sizeof(char) * RSA_size(rsa));
 
-    int rc = RSA_private_decrypt(in.length(), (const unsigned char *)in.c_str(),
-            (unsigned char *) out_c, rsa, RSA_PKCS1_PADDING);
+    const char * in_c = in.c_str();
 
-    if ( rc != -1 )
+    for (int index = 0; index < in_size; index += key_size)
     {
-        out.assign(out_c, rc);
-        rc = 0;
+        int block_size = key_size;
+
+        if ( index + key_size > in_size )
+        {
+            block_size = in_size - index;
+        }
+
+        int rc = RSA_private_decrypt(block_size, (const unsigned char *)
+                in_c + index, (unsigned char *) out_c, rsa, RSA_PKCS1_PADDING);
+
+        if ( rc != -1 )
+        {
+            out.append(out_c, rc);
+            rc = 0;
+        }
+        else
+        {
+            free(out_c);
+            return -1;
+        }
     }
 
     free(out_c);
 
-    return rc;
+    return 0;
 }

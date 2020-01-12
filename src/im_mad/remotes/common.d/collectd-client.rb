@@ -29,7 +29,6 @@ require 'rexml/document'
 
 require_relative '../lib/probe_db'
 
-
 #  This class represents a monitord client. It handles udp and tcp connections
 #  and send update messages to monitord
 #
@@ -72,7 +71,22 @@ class MonitorClient
 
     # Formats message payload to send over the wire
     def pack(data)
-        data = @pubkey.public_encrypt(data) if @pubkey
+        if @pubkey
+            block_size = @pubkey.n.num_bytes - 11
+
+            edata = ''
+            index = 0
+
+            loop do
+                break if index >= data.length
+
+                edata << @pubkey.public_encrypt(data[index, block_size])
+
+                index += block_size
+            end
+
+            data = edata
+        end
 
         zdata  = Zlib::Deflate.deflate(data, Zlib::BEST_COMPRESSION)
         data64 = Base64.strict_encode64(zdata)
@@ -89,7 +103,7 @@ class ProbeRunner
 
     def initialize(hyperv, path, stdin)
         @path  = File.join(File.dirname(__FILE__), '..', "#{hyperv}-probes.d",
-                          path)
+                           path)
         @stdin = stdin
     end
 
@@ -193,7 +207,8 @@ begin
     }
 
     if !pubkey.empty?
-        m = pubkey.match(/(-+BEGIN RSA PUBLIC KEY-+)([^-]*)(-+END RSA PUBLIC KEY-+)/)
+        exp = /(-+BEGIN RSA PUBLIC KEY-+)([^-]*)(-+END RSA PUBLIC KEY-+)/
+        m   = pubkey.match(exp)
 
         if !m
             puts 'Public key not in PEM format'
@@ -217,7 +232,6 @@ end
 #-------------------------------------------------------------------------------
 
 VirtualMachineDB.unlink_db(hyperv)
-
 
 client = MonitorClient.new(host, port, hostid, :pubkey => pubkey)
 
