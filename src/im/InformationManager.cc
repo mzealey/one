@@ -17,6 +17,9 @@
 #include "InformationManager.h"
 #include "HostPool.h"
 #include "OpenNebulaMessages.h"
+#include "VirtualMachinePool.h"
+#include "Nebula.h"
+#include "LifeCycleManager.h"
 
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
@@ -313,13 +316,112 @@ void InformationManager::_vm_state(unique_ptr<Message<OpenNebulaMessages>> msg)
         return;
     }
 
-    // -------------------------------------------------------------------------
+    // Proces the template
+    int id;
+    string deploy_id;
+    string state_str;
 
-    std::ostringstream oss;
+    vector<VectorAttribute*> vms;
+    tmpl.get("VM", vms);
+    for (const auto& vm_tmpl : vms)
+    {
+        if (vm_tmpl->vector_value("ID", id) != 0)
+        {
+            id = -1;
+        }
+        vm_tmpl->vector_value("DEPLOY_ID", deploy_id);
+        vm_tmpl->vector_value("STATE", state_str);
 
-    oss << tmpl;
+        auto* vm = vmpool->get(id);
 
-    NebulaLog::info("DEBUG", oss.str());
+        if (vm == nullptr)
+        {
+            NebulaLog::warn("InM", "Unable to find VM, id: " + to_string(id));
+            continue;
+        }
+
+        /* ---------------------------------------------------------------------- */
+        /* Update VM info only for VMs in ACTIVE                                  */
+        /* ---------------------------------------------------------------------- */
+        // ne.get_configuration_attribute("MONITORING_INTERVAL_DB_UPDATE", update_time);
+
+        // if (vm->get_state() == VirtualMachine::ACTIVE && update_time != -1 &&
+        //         (time(0) - vm->get_last_poll() > update_time))
+        // {
+        //     if (vm->update_info(monitor_str) == 0)
+        //     {
+        //         vmpool->update_history(vm);
+
+        //         //vmpool->update_monitoring(vm);
+        //     }
+
+        //     vmpool->update(vm);
+
+
+        /* ---------------------------------------------------------------------- */
+        /* Process the VM state from the monitoring info                          */
+        /* ---------------------------------------------------------------------- */
+
+        LifeCycleManager* lcm = Nebula::instance().get_lcm();
+
+        if (state_str == "RUNNING")
+        {
+            if ( vm->get_state() == VirtualMachine::POWEROFF ||
+                (vm->get_state() == VirtualMachine::ACTIVE &&
+                (  vm->get_lcm_state() == VirtualMachine::UNKNOWN ||
+                    vm->get_lcm_state() == VirtualMachine::BOOT ||
+                    vm->get_lcm_state() == VirtualMachine::BOOT_POWEROFF ||
+                    vm->get_lcm_state() == VirtualMachine::BOOT_UNKNOWN  ||
+                    vm->get_lcm_state() == VirtualMachine::BOOT_SUSPENDED ||
+                    vm->get_lcm_state() == VirtualMachine::BOOT_STOPPED ||
+                    vm->get_lcm_state() == VirtualMachine::BOOT_UNDEPLOY ||
+                    vm->get_lcm_state() == VirtualMachine::BOOT_MIGRATE ||
+                    vm->get_lcm_state() == VirtualMachine::BOOT_MIGRATE_FAILURE ||
+                    vm->get_lcm_state() == VirtualMachine::BOOT_STOPPED_FAILURE ||
+                    vm->get_lcm_state() == VirtualMachine::BOOT_UNDEPLOY_FAILURE ||
+                    vm->get_lcm_state() == VirtualMachine::BOOT_FAILURE )))
+            {
+                lcm->trigger(LCMAction::MONITOR_POWERON, vm->get_oid());
+            }
+        }
+        else if (state_str == "FAILURE")
+        {
+            if ( vm->get_state() == VirtualMachine::ACTIVE &&
+                ( vm->get_lcm_state() == VirtualMachine::RUNNING ||
+                vm->get_lcm_state() == VirtualMachine::UNKNOWN ))
+            {
+                vm->log("VMM",Log::INFO,"VM running but monitor state is ERROR.");
+
+                lcm->trigger(LCMAction::MONITOR_DONE, vm->get_oid());
+            }
+        }
+        else if (state_str == "SUSPENDED")
+        {
+            if ( vm->get_state() == VirtualMachine::ACTIVE &&
+                ( vm->get_lcm_state() == VirtualMachine::RUNNING ||
+                vm->get_lcm_state() == VirtualMachine::UNKNOWN ))
+            {
+                vm->log("VMM",Log::INFO, "VM running but monitor state is PAUSED.");
+
+                lcm->trigger(LCMAction::MONITOR_SUSPEND, vm->get_oid());
+            }
+        }
+        else if (state_str == "POWEROFF")
+        {
+            if ( vm->get_state() == VirtualMachine::ACTIVE &&
+                ( vm->get_lcm_state() == VirtualMachine::RUNNING ||
+                vm->get_lcm_state() == VirtualMachine::UNKNOWN ||
+                vm->get_lcm_state() == VirtualMachine::SHUTDOWN ||
+                vm->get_lcm_state() == VirtualMachine::SHUTDOWN_POWEROFF ||
+                vm->get_lcm_state() == VirtualMachine::SHUTDOWN_UNDEPLOY ))
+            {
+                lcm->trigger(LCMAction::MONITOR_POWEROFF, vm->get_oid());
+            }
+        }
+
+        vm->unlock();
+    }
+
 }
 
 /* -------------------------------------------------------------------------- */

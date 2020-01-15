@@ -23,6 +23,7 @@
 
 class HostPool;
 class Host;
+class VirtualMachinePool;
 
 class InformationManager :
     public DriverManager<OpenNebulaMessages, Driver<OpenNebulaMessages>>,
@@ -32,10 +33,12 @@ public:
 
     InformationManager(
         HostPool * _hpool,
+        VirtualMachinePool * _vmpool,
         time_t     _timer_period,
         const string& mad_location)
             : DriverManager(mad_location)
             , hpool(_hpool)
+            , vmpool(_vmpool)
             , timer_period(_timer_period)
     {
         am.addListener(this);
@@ -124,6 +127,11 @@ private:
      *  Pointer to the Host Pool
      */
     HostPool *      hpool;
+
+    /**
+     *  Pointer to the Host Pool
+     */
+    VirtualMachinePool * vmpool;
 
     /**
      *  Timer period for the Virtual Machine Manager.

@@ -232,7 +232,7 @@ class Domain
 
         # Domain state
 
-        state  = 'UNKWON'
+        state  = 'UNKNOWN'
         reason = 'missing'
 
         if hash['STATE'] == 'paused'
@@ -243,7 +243,7 @@ class Domain
                 reason = Regexp.last_match(1) || 'missing'
             end
 
-            state = STATE_MAP['paused'][reason] || 'UNKOWN'
+            state = STATE_MAP['paused'][reason] || 'UNKNOWN'
         else
             state = STATE_MAP[hash['STATE']] || 'UNKNOWN'
         end
