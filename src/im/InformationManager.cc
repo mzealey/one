@@ -206,6 +206,16 @@ void InformationManager::_host_state(unique_ptr<Message<OpenNebulaMessages>> msg
     {
         host->set_state(new_state);
 
+        if ( new_state == Host::ERROR )
+        {
+            LifeCycleManager* lcm = Nebula::instance().get_lcm();
+
+            for (const auto& vmid : host->get_vm_ids())
+            {
+                lcm->trigger(LCMAction::MONITOR_DONE, vmid);
+            }
+        }
+
         hpool->update(host);
     }
 
@@ -276,6 +286,7 @@ void InformationManager::timer_action(const ActionRequest& ar)
 void InformationManager::user_action(const ActionRequest& ar)
 {
     auto * imd = get_driver("monitord");
+
     if (!imd)
     {
         NebulaLog::error("InM", "Could not find information driver 'monitor'");
@@ -287,8 +298,10 @@ void InformationManager::user_action(const ActionRequest& ar)
     hpool->dump(xml_hosts, "", "", false);
 
     Message<OpenNebulaMessages> msg;
+
     msg.type(OpenNebulaMessages::HOST_LIST);
     msg.payload(xml_hosts);
+
     imd->write(msg);
 }
 
@@ -323,12 +336,14 @@ void InformationManager::_vm_state(unique_ptr<Message<OpenNebulaMessages>> msg)
 
     vector<VectorAttribute*> vms;
     tmpl.get("VM", vms);
+
     for (const auto& vm_tmpl : vms)
     {
         if (vm_tmpl->vector_value("ID", id) != 0)
         {
             id = -1;
         }
+
         vm_tmpl->vector_value("DEPLOY_ID", deploy_id);
         vm_tmpl->vector_value("STATE", state_str);
 
