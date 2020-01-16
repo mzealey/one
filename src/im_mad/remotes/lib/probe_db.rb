@@ -17,6 +17,7 @@ class VirtualMachineDB
         :times_missing => 3,
         :obsolete      => 720,
         :db_path       => "#{__dir__}/../status.db",
+        :period        => 0,
         :missing_state => "POWEROFF"
     }
 
@@ -24,7 +25,6 @@ class VirtualMachineDB
         conf = VirtualMachineDB.load_conf(hyperv, opts)
 
         File.unlink(conf[:db_path])
-    rescue StandardError
     end
 
     def initialize(hyperv, opts = {})
@@ -49,9 +49,12 @@ class VirtualMachineDB
         status_str = ''
 
         time = Time.now.to_i
+        uthr = File.stat(@conf[:db_path]).mtime.to_i + (@conf[:period].to_i * 3)
         vms  = DomainList.state_info
 
         monitor_ids = []
+
+        force_update = time > uthr
 
         # ----------------------------------------------------------------------
         # report state changes in vms
@@ -78,9 +81,10 @@ class VirtualMachineDB
             @dataset.where(:id => vm[:id]).update(:state     => vm[:state],
                                                   :missing   => 0,
                                                   :timestamp => time)
-            next if vm_db[:state] == vm[:state]
 
-            status_str << vm_to_status(vm)
+            if vm_db[:state] != vm[:state] || force_update
+                status_str << vm_to_status(vm)
+            end
         end
 
         # ----------------------------------------------------------------------
@@ -93,7 +97,8 @@ class VirtualMachineDB
 
             miss = vm_db[:missing]
 
-            if miss == @conf[:times_missing] # report once
+            # TODO: report once or replace this with %times
+            if miss == @conf[:times_missing] || force_update
                 status_str << vm_to_status(vm_db, @conf[:missing_state])
             end
 

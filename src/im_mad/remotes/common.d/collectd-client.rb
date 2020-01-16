@@ -231,8 +231,6 @@ end
 # Run configuration probes and send information to monitord
 #-------------------------------------------------------------------------------
 
-VirtualMachineDB.unlink_db(hyperv)
-
 client = MonitorClient.new(host, port, hostid, :pubkey => pubkey)
 
 rc, data = ProbeRunner.run_once(hyperv, probes[:system_host][:path], xml_txt)
