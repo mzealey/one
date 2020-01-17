@@ -367,6 +367,31 @@ int VirtualMachinePool::dump_monitoring(
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
+VirtualMachineMonitorInfo VirtualMachinePool::get_monitoring(int vmid)
+{
+    ostringstream cmd;
+    string monitor_str;
+
+    cmd << "SELECT " << one_db::vm_monitor_table << ".body FROM "
+        << one_db::vm_monitor_table
+        << " WHERE vmid = " << vmid
+        << " AND last_poll=(SELECT MAX(last_poll) FROM "
+        << one_db::vm_monitor_table
+        << " WHERE vmid = " << vmid << ")";
+
+    VirtualMachineMonitorInfo info(vmid, 0);
+
+    if (PoolSQL::dump(monitor_str, "", cmd) == 0)
+    {
+        info.from_xml(monitor_str);
+    }
+
+    return info;
+}
+
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+
 int VirtualMachinePool::get_vmid(const string& deploy_id)
 {
     int rc;

@@ -45,7 +45,6 @@ VirtualMachine::VirtualMachine(int           id,
                                int           umask,
                                VirtualMachineTemplate * _vm_template):
         PoolObjectSQL(id,VM,"",_uid,_gid,_uname,_gname,one_db::vm_table),
-        last_poll(0),
         state(INIT),
         prev_state(INIT),
         lcm_state(LCM_INIT),
@@ -502,6 +501,10 @@ int VirtualMachine::select(SqlDB * db)
     {
         return rc;
     }
+
+    // Get last monitoring record
+    auto vmpool = Nebula::instance().get_vmpool();
+    monitoring = vmpool->get_monitoring(oid);
 
     //Get History Records.
     if ( hasHistory() )
@@ -1693,7 +1696,7 @@ int VirtualMachine::insert_replace(SqlDB *db, bool replace, string& error_str)
             << "body = '"         <<  sql_xml       << "', "
             << "uid = "           <<  uid           << ", "
             << "gid = "           <<  gid           << ", "
-            << "last_poll = "     <<  last_poll     << ", "
+            << "last_poll = "     <<  monitoring.timestamp() << ", "
             << "state = "         <<  state         << ", "
             << "lcm_state = "     <<  lcm_state     << ", "
             << "owner_u = "       <<  owner_u       << ", "
@@ -1711,7 +1714,7 @@ int VirtualMachine::insert_replace(SqlDB *db, bool replace, string& error_str)
             << "'" << sql_xml       << "',"
             <<        uid           << ","
             <<        gid           << ","
-            <<        last_poll     << ","
+            << monitoring.timestamp() << ","
             <<        state         << ","
             <<        lcm_state     << ","
             <<        owner_u       << ","
@@ -2103,7 +2106,6 @@ string& VirtualMachine::to_xml_extended(string& xml, int n_history) const
 {
     string template_xml;
     string user_template_xml;
-    string monitoring_xml;
     string history_xml;
     string perm_xml;
     string snap_xml;
@@ -2119,7 +2121,7 @@ string& VirtualMachine::to_xml_extended(string& xml, int n_history) const
         << "<GNAME>"     << gname     << "</GNAME>"
         << "<NAME>"      << name      << "</NAME>"
         << perms_to_xml(perm_xml)
-        << "<LAST_POLL>" << last_poll << "</LAST_POLL>"
+        << "<LAST_POLL>" << monitoring.timestamp() << "</LAST_POLL>"
         << "<STATE>"     << state     << "</STATE>"
         << "<LCM_STATE>" << lcm_state << "</LCM_STATE>"
         << "<PREV_STATE>"     << prev_state     << "</PREV_STATE>"
@@ -2129,7 +2131,7 @@ string& VirtualMachine::to_xml_extended(string& xml, int n_history) const
         << "<ETIME>"     << etime     << "</ETIME>"
         << "<DEPLOY_ID>" << deploy_id << "</DEPLOY_ID>"
         << lock_db_to_xml(lock_str)
-        << monitoring.to_xml(monitoring_xml)
+        << monitoring.to_xml()
         << obj_template->to_xml(template_xml)
         << user_obj_template->to_xml(user_template_xml);
 
@@ -2194,7 +2196,7 @@ string& VirtualMachine::to_json(string& json) const
         << "\"UNAME\": \""<< uname << "\","
         << "\"GNAME\": \""<< gname << "\","
         << "\"NAME\": \""<< name << "\","
-        << "\"LAST_POLL\": \""<< last_poll << "\","
+        << "\"LAST_POLL\": \""<< monitoring.timestamp() << "\","
         << "\"STATE\": \""<< state << "\","
         << "\"LCM_STATE\": \""<< lcm_state << "\","
         << "\"PREV_STATE\": \""<< prev_state << "\","
@@ -2259,7 +2261,7 @@ string& VirtualMachine::to_token(string& text) const
 
 string& VirtualMachine::to_xml_short(string& xml)
 {
-    string disks_xml, monitoring_xml, user_template_xml, history_xml, nics_xml;
+    string disks_xml, user_template_xml, history_xml, nics_xml;
     string cpu_tmpl, mem_tmpl;
 
     ostringstream   oss;
@@ -2274,7 +2276,7 @@ string& VirtualMachine::to_xml_short(string& xml)
         << "<UNAME>"     << uname     << "</UNAME>"
         << "<GNAME>"     << gname     << "</GNAME>"
         << "<NAME>"      << name      << "</NAME>"
-        << "<LAST_POLL>" << last_poll << "</LAST_POLL>"
+        << "<LAST_POLL>" << monitoring.timestamp() << "</LAST_POLL>"
         << "<STATE>"     << state     << "</STATE>"
         << "<LCM_STATE>" << lcm_state << "</LCM_STATE>"
         << "<RESCHED>"   << resched   << "</RESCHED>"
@@ -2301,7 +2303,7 @@ string& VirtualMachine::to_xml_short(string& xml)
     }
 
     oss << "</TEMPLATE>"
-        << monitoring.to_xml_short(monitoring_xml)
+        << monitoring.to_xml_short()
         << user_obj_template->to_xml_short(user_template_xml);
 
     if ( hasHistory() )
@@ -2351,7 +2353,6 @@ int VirtualMachine::from_xml(const string &xml_str)
     rc += xpath(gname,     "/VM/GNAME", "not_found");
     rc += xpath(name,      "/VM/NAME",  "not_found");
 
-    rc += xpath<time_t>(last_poll, "/VM/LAST_POLL", 0);
     rc += xpath(resched, "/VM/RESCHED", 0);
 
     rc += xpath<time_t>(stime, "/VM/STIME", 0);
@@ -2414,21 +2415,6 @@ int VirtualMachine::from_xml(const string &xml_str)
     }
 
     nics.init(vnics, true);
-
-    ObjectXML::free_nodes(content);
-    content.clear();
-
-    // -------------------------------------------------------------------------
-    // Virtual Machine Monitoring
-    // -------------------------------------------------------------------------
-    ObjectXML::get_nodes("/VM/MONITORING", content);
-
-    if (content.empty())
-    {
-        return -1;
-    }
-
-    rc += monitoring.from_xml_node(content[0]);
 
     ObjectXML::free_nodes(content);
     content.clear();
@@ -2507,41 +2493,41 @@ int VirtualMachine::from_xml(const string &xml_str)
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
-int VirtualMachine::update_info(const string& monitor_data)
-{
-    int    rc;
-    string error;
+// int VirtualMachine::update_info(const string& monitor_data)
+// {
+//     int    rc;
+//     string error;
 
-    ostringstream oss;
+//     ostringstream oss;
 
-    last_poll = time(0);
+//     last_poll = time(0);
 
-    rc = monitoring.update(monitor_data, error);
+//     rc = monitoring.update(monitor_data, error);
 
-    if ( rc != 0)
-    {
-        oss << "Ignoring monitoring information, error:" << error
-            << ". Monitor information was: " << monitor_data;
+//     if ( rc != 0)
+//     {
+//         oss << "Ignoring monitoring information, error:" << error
+//             << ". Monitor information was: " << monitor_data;
 
-        NebulaLog::log("VMM", Log::ERROR, oss);
+//         NebulaLog::log("VMM", Log::ERROR, oss);
 
-        set_template_error_message(oss.str());
+//         set_template_error_message(oss.str());
 
-        log("VMM", Log::ERROR, oss);
+//         log("VMM", Log::ERROR, oss);
 
-        return -1;
-    }
+//         return -1;
+//     }
 
-    set_vm_info();
+//     set_vm_info();
 
-    clear_template_monitor_error();
+//     clear_template_monitor_error();
 
-    oss << "VM " << oid << " successfully monitored: " << monitor_data;
+//     oss << "VM " << oid << " successfully monitored: " << monitor_data;
 
-    NebulaLog::log("VMM", Log::DEBUG, oss);
+//     NebulaLog::log("VMM", Log::DEBUG, oss);
 
-    return 0;
-};
+//     return 0;
+// };
 
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */

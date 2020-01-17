@@ -108,8 +108,6 @@ void LifeCycleManager::revert_migrate_after_failure(VirtualMachine* vm)
 
     vm->set_running_stime(the_time);
 
-    vm->set_last_poll(0);
-
     vmpool->insert_history(vm);
 
     vmpool->update(vm);
@@ -281,8 +279,6 @@ void  LifeCycleManager::deploy_success_action(int vid)
 
         vm->set_running_stime(the_time);
 
-        vm->set_last_poll(0);
-
         vmpool->update_history(vm);
 
         vm->set_previous_etime(the_time);
@@ -388,8 +384,6 @@ void  LifeCycleManager::deploy_failure_action(int vid)
         vm->set_stime(the_time);
 
         vm->set_running_stime(the_time);
-
-        vm->set_last_poll(0);
 
         vmpool->insert_history(vm);
 
@@ -701,8 +695,6 @@ void LifeCycleManager::prolog_success_action(int vid)
 
             vm->set_running_stime(the_time);
 
-            vm->set_last_poll(0);
-
             vmpool->update_history(vm);
 
             vmpool->update(vm);
@@ -727,8 +719,6 @@ void LifeCycleManager::prolog_success_action(int vid)
             vm->set_etime(the_time);
 
             vm->set_prolog_etime(the_time);
-
-            vm->set_last_poll(0);
 
             vm->set_vm_info();
 
@@ -851,7 +841,6 @@ void  LifeCycleManager::prolog_failure_action(int vid)
 
             vm->set_stime(t);
             vm->set_prolog_stime(t);
-            vm->set_last_poll(0);
 
             hpool->add_capacity(vm->get_hid(), sr);
 
@@ -1250,8 +1239,6 @@ void  LifeCycleManager::monitor_poweron_action(int vid)
             vm->set_stime(the_time);
 
             vm->set_running_stime(the_time);
-
-            vm->set_last_poll(the_time);
 
             vmpool->insert_history(vm);
 

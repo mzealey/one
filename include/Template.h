@@ -461,7 +461,7 @@ public:
     /**
      *  @return true if template is empty
      */
-    bool empty()
+    bool empty() const
     {
         return attributes.empty();
     }

@@ -272,10 +272,7 @@ void HostMonitorManager::monitor_vm(int oid,
                                     const Template &tmpl,
                                     const std::string deploy_id)
 {
-    VMMonitoringTemplate monitoring;
-
-    monitoring.oid(oid);
-    monitoring.timestamp(time(nullptr));
+    VirtualMachineMonitorInfo monitoring(oid, time(nullptr));
 
     if (monitoring.from_template(tmpl) != 0 || monitoring.oid() == -1)
     {

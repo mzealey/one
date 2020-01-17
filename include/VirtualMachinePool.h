@@ -346,6 +346,12 @@ public:
     }
 
     /**
+     * Returns last monitoring info for a VM
+     *  @param vmid Virtual Machine id
+     */
+    VirtualMachineMonitorInfo get_monitoring(int vmid);
+
+    /**
      * Processes all the history records, and stores the monthly cost for each
      * VM
      *  @param start_month First month (+year) to process. January is 1.

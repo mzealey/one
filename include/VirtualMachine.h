@@ -300,7 +300,7 @@ public:
      *  Updates VM dynamic information (usage counters), and updates last_poll,
      *  and copies it to history record for acct.
      */
-    int update_info(const string& monitor_data);
+    // int update_info(const string& monitor_data);
 
     /**
      *  Clears the VM monitor information usage counters (MEMORY, CPU),
@@ -309,11 +309,7 @@ public:
      */
     void reset_info()
     {
-        last_poll = time(0);
-
-        monitoring.replace("CPU","0.0");
-
-        monitoring.replace("MEMORY","0");
+        monitoring.reset_info();
 
         set_vm_info();
 
@@ -991,24 +987,6 @@ public:
     };
 
     /**
-     *  Gets time from last information polling.
-     *    @return time of last poll (epoch) or 0 if never polled
-     */
-    time_t get_last_poll() const
-    {
-        return last_poll;
-    };
-
-    /**
-     *  Sets time of last information polling.
-     *    @param poll time in epoch, normally time(0)
-     */
-    void set_last_poll(time_t poll)
-    {
-        last_poll = poll;
-    };
-
-    /**
      *  Get the VM physical capacity requirements for the host.
      *    @param sr the HostShareCapacity to store the capacity request.
      */
@@ -1666,14 +1644,6 @@ private:
     // *************************************************************************
     // Virtual Machine Attributes
     // *************************************************************************
-
-    // -------------------------------------------------------------------------
-    // VM Scheduling & Managing Information
-    // -------------------------------------------------------------------------
-    /**
-     *  Last time (in epoch) that the VM was polled to get its status
-     */
-    time_t      last_poll;
 
     // -------------------------------------------------------------------------
     // Virtual Machine Description

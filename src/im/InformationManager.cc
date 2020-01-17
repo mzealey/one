@@ -310,11 +310,6 @@ void InformationManager::user_action(const ActionRequest& ar)
 
 void InformationManager::_vm_state(unique_ptr<Message<OpenNebulaMessages>> msg)
 {
-    NebulaLog::debug("InM", "Received VM_STATE message id: " +
-            to_string(msg->oid()));
-
-    // -------------------------------------------------------------------------
-
     char *   error_msg;
     Template tmpl;
 
@@ -322,7 +317,7 @@ void InformationManager::_vm_state(unique_ptr<Message<OpenNebulaMessages>> msg)
 
     if (rc != 0)
     {
-        NebulaLog::error("InM", string("Error parsing state vm: ") + error_msg);
+        NebulaLog::error("InM", string("Error parsing VM_STATE: ") + error_msg);
 
         free(error_msg);
 
@@ -347,12 +342,21 @@ void InformationManager::_vm_state(unique_ptr<Message<OpenNebulaMessages>> msg)
         vm_tmpl->vector_value("DEPLOY_ID", deploy_id);
         vm_tmpl->vector_value("STATE", state_str);
 
+        NebulaLog::debug("InM", "Received VM_STATE for VM id: " +
+            to_string(id));
+
         auto* vm = vmpool->get(id);
 
         if (vm == nullptr)
         {
             NebulaLog::warn("InM", "Unable to find VM, id: " + to_string(id));
             continue;
+        }
+
+        if (vm->get_deploy_id() != deploy_id)
+        {
+            vm->set_deploy_id(deploy_id);
+            vmpool->update(vm);
         }
 
         /* ---------------------------------------------------------------------- */
@@ -371,7 +375,6 @@ void InformationManager::_vm_state(unique_ptr<Message<OpenNebulaMessages>> msg)
         //     }
 
         //     vmpool->update(vm);
-
 
         /* ---------------------------------------------------------------------- */
         /* Process the VM state from the monitoring info                          */

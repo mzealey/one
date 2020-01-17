@@ -20,14 +20,14 @@
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
-int VMRPCPool::update_monitoring(const VMMonitoringTemplate& monitoring)
+int VMRPCPool::update_monitoring(const VirtualMachineMonitorInfo& monitoring)
 {
     if (monitor_expiration <= 0)
     {
         return 0;
     }
 
-    auto sql_xml = db->escape_str(monitoring.to_xml());
+    auto sql_xml = db->escape_str(monitoring.to_xml_extended());
 
     if (sql_xml == 0)
     {

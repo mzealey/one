@@ -17,7 +17,7 @@
 #define VM_RPC_POOL_H_
 
 #include "VirtualMachineBase.h"
-#include "VMMonitoringTemplate.h"
+#include "VirtualMachineMonitorInfo.h"
 #include "RPCPool.h"
 
 // Provides list of HostBase objects
@@ -51,7 +51,7 @@ public:
     /**
      *  Write monitoring data to DB
      */
-    int update_monitoring(const VMMonitoringTemplate& vm);
+    int update_monitoring(const VirtualMachineMonitorInfo& vm);
 
 protected:
     void add_object(xmlNodePtr node) override

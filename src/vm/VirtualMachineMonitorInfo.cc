@@ -14,7 +14,7 @@
 /* limitations under the License.                                             */
 /* -------------------------------------------------------------------------- */
 
-#include "VMMonitoringTemplate.h"
+#include "VirtualMachineMonitorInfo.h"
 #include "ObjectXML.h"
 
 /* -------------------------------------------------------------------------- */
@@ -27,7 +27,17 @@ using namespace std;
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
-string VMMonitoringTemplate::to_xml() const
+string VirtualMachineMonitorInfo::to_xml() const
+{
+    string monitor_str;
+
+    return monitoring.to_xml(monitor_str);
+}
+
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+
+string VirtualMachineMonitorInfo::to_xml_extended() const
 {
     string monitor_str;
     ostringstream oss;
@@ -40,13 +50,42 @@ string VMMonitoringTemplate::to_xml() const
 
     oss << "</MONITORING>";
 
+    // todo add Template (CPU and MEMORY)
     return oss.str();
 }
 
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
-int VMMonitoringTemplate::from_xml(const std::string& xml_string)
+string VirtualMachineMonitorInfo::to_xml_short() const
+{
+    ostringstream oss;
+    string cpu, memory, state;
+
+    if (monitoring.empty())
+    {
+        oss << "<MONITORING/>";
+    }
+    else
+    {
+        monitoring.get("CPU", cpu);
+        monitoring.get("MEMORY", memory);
+        monitoring.get("STATE", state);
+
+        oss << "<MONITORING>"
+            << "<CPU>"    << one_util::escape_xml(cpu)    <<  "</CPU>"
+            << "<MEMORY>" << one_util::escape_xml(memory) <<  "</MEMORY>"
+            << "<STATE>"  << one_util::escape_xml(state)  <<  "</STATE>"
+            << "</MONITORING>";
+    }
+
+    return oss.str();
+}
+
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+
+int VirtualMachineMonitorInfo::from_xml(const std::string& xml_string)
 {
     ObjectXML xml(xml_string);
 
@@ -59,7 +98,7 @@ int VMMonitoringTemplate::from_xml(const std::string& xml_string)
     }
 
     vector<xmlNodePtr> content;
-    xml.get_nodes("/MONITORING/TEMPLATE", content);
+    xml.get_nodes("/MONITORING/MONITORING", content);
 
     if (!content.empty())
     {
@@ -75,7 +114,7 @@ int VMMonitoringTemplate::from_xml(const std::string& xml_string)
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
-int VMMonitoringTemplate::from_template(const Template &tmpl)
+int VirtualMachineMonitorInfo::from_template(const Template &tmpl)
 {
     int tmp;
     if (tmpl.get("OID", tmp))
@@ -91,4 +130,16 @@ int VMMonitoringTemplate::from_template(const Template &tmpl)
     monitoring.merge(&tmpl);
 
     return 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+
+void VirtualMachineMonitorInfo::reset_info()
+{
+    _timestamp = time(0);
+
+    monitoring.replace("CPU","0.0");
+
+    monitoring.replace("MEMORY","0");
 }
