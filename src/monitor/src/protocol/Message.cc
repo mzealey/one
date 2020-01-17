@@ -161,6 +161,7 @@ int zlib_decompress(const std::string& in, std::string& out)
     }
 
     unsigned char zbuf[ZBUFFER];
+    std::string result;
     int rc;
 
     do
@@ -177,10 +178,12 @@ int zlib_decompress(const std::string& in, std::string& out)
             return -1;
         }
 
-        out.append((const char *) zbuf, (size_t) (ZBUFFER - zs.avail_out));
+        result.append((const char *) zbuf, (size_t) (ZBUFFER - zs.avail_out));
     } while (rc != Z_STREAM_END);
 
     inflateEnd(&zs);
+
+    out = result;
 
     return 0;
 }
@@ -210,6 +213,7 @@ int zlib_compress(const std::string& in, std::string& out)
     zs.next_in  = (unsigned char *) const_cast<char *>(in.c_str());
 
     unsigned char zbuf[ZBUFFER];
+    std::string result;
 
     do
     {
@@ -222,10 +226,12 @@ int zlib_compress(const std::string& in, std::string& out)
             return -1;
         }
 
-        out.append((const char *) zbuf, (size_t) (ZBUFFER - zs.avail_out));
+        result.append((const char *) zbuf, (size_t) (ZBUFFER - zs.avail_out));
     } while (zs.avail_out == 0);
 
     deflateEnd(&zs);
+
+    out = result;
 
     return 0;
 }
@@ -314,7 +320,7 @@ int rsa_private_decrypt(const std::string& in, std::string& out)
         fclose(fp);
     }
 
-    out.clear();
+    std::string result;
 
     int key_size = RSA_size(rsa);
     int in_size  = in.length();
@@ -336,7 +342,7 @@ int rsa_private_decrypt(const std::string& in, std::string& out)
 
         if ( rc != -1 )
         {
-            out.append(out_c, rc);
+            result.append(out_c, rc);
             rc = 0;
         }
         else
@@ -347,6 +353,8 @@ int rsa_private_decrypt(const std::string& in, std::string& out)
     }
 
     free(out_c);
+
+    out = result;
 
     return 0;
 }

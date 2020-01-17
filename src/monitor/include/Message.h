@@ -211,16 +211,12 @@ int Message<E>::parse_from(const std::string& input, bool decrypt)
         goto error;
     }
 
-    if ( decrypt && is_rsa_set())
+    if ( decrypt && is_rsa_set() )
     {
-        std::string plain_payload;
-
-        if ( rsa_private_decrypt(_payload, plain_payload) == -1 )
+        if ( rsa_private_decrypt(_payload, _payload) == -1 )
         {
             goto error;
         }
-
-        _payload = plain_payload;
     }
 
     return 0;
