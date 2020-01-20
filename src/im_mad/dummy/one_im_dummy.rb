@@ -56,20 +56,38 @@ class DummyInformationManager < OpenNebulaDriver
 
     # Execute the sensor array in the remote host
     def action_monitor(notused, hostid, zaction64)
+        # send MONITOR_HOST message
+        results = "HYPERVISOR=dummy\n"
+        # results << "HOSTNAME=#{host}\n"
+
+        used_memory = rand(16777216)
+        results << "USEDMEMORY=#{used_memory}\n"
+        results << "FREEMEMORY=#{16777216-used_memory}\n"
+
+        used_cpu = rand(800)
+        results << "USEDCPU=#{used_cpu}\n"
+        results << "FREECPU=#{800-used_cpu}\n"
+
+        results << "DS_LOCATION_USED_MB=9720\n"
+        results << "DS_LOCATION_TOTAL_MB=20480\n"
+        results << "DS_LOCATION_FREE_MB=20480\n"
+
+
+        results = Zlib::Deflate.deflate(results, Zlib::BEST_COMPRESSION)
+        results = Base64::encode64(results).strip.delete("\n")
+
+        send_message("MONITOR_HOST", RESULT[:success], hostid, results)
+
+
+
+        # send SYSTEM_HOST message
         results = "HYPERVISOR=dummy\n"
         # results << "HOSTNAME=#{host}\n"
 
         results << "CPUSPEED=2.3GHz\n"
 
-        used_memory = rand(16777216)
         results << "TOTALMEMORY=16777216\n"
-        results << "USEDMEMORY=#{used_memory}\n"
-        results << "FREEMEMORY=#{16777216-used_memory}\n"
-
-        used_cpu = rand(800)
         results << "TOTALCPU=800\n"
-        results << "USEDCPU=#{used_cpu}\n"
-        results << "FREECPU=#{800-used_cpu}\n"
 
         results << "DS_LOCATION_USED_MB=9720\n"
         results << "DS_LOCATION_TOTAL_MB=20480\n"
@@ -129,7 +147,7 @@ class DummyInformationManager < OpenNebulaDriver
         results = Zlib::Deflate.deflate(results, Zlib::BEST_COMPRESSION)
         results = Base64::encode64(results).strip.delete("\n")
 
-        send_message("MONITOR_HOST", RESULT[:success], hostid, results)
+        send_message("SYSTEM_HOST", RESULT[:success], hostid, results)
     end
 
     def stop_monitor(notused, number, host)
