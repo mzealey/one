@@ -19,7 +19,8 @@
 
 #include "PoolSQL.h"
 #include "Host.h"
-#include "CachePool.h"
+#include "HostMonitoringTemplate.h"
+#include "OneDB.h"
 
 #include <time.h>
 #include <sstream>
@@ -263,6 +264,12 @@ public:
 
         return dump_monitoring(oss, filter.str());
     }
+
+    /**
+     * Returns last monitoring info for a host
+     *  @param hid host id
+     */
+    HostMonitoringTemplate get_monitoring(int hid);
 
 private:
     /**

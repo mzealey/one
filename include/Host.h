@@ -19,13 +19,12 @@
 
 #include "PoolObjectSQL.h"
 #include "HostTemplate.h"
+#include "HostMonitoringTemplate.h"
 #include "HostShare.h"
 #include "ClusterableSingle.h"
 #include "ObjectCollection.h"
 #include "NebulaLog.h"
 #include "NebulaUtil.h"
-
-#include "OneDB.h"
 
 /**
  *  The Host class.
@@ -304,6 +303,11 @@ public:
      */
     int post_update_template(std::string& error) override;
 
+    /**
+     *  Read monitoring from DB
+     */
+    void load_monitoring();
+
 private:
     friend class HostPool;
 
@@ -328,6 +332,8 @@ private:
      *  Stores a collection with the VMs running in the host
      */
     ObjectCollection vm_collection;
+
+    HostMonitoringTemplate monitoring;
 
     // *************************************************************************
     // Constructor

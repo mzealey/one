@@ -381,7 +381,7 @@ VirtualMachineMonitorInfo VirtualMachinePool::get_monitoring(int vmid)
 
     VirtualMachineMonitorInfo info(vmid, 0);
 
-    if (PoolSQL::dump(monitor_str, "", cmd) == 0)
+    if (PoolSQL::dump(monitor_str, "", cmd) == 0 && !monitor_str.empty())
     {
         info.from_xml(monitor_str);
     }

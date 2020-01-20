@@ -183,3 +183,27 @@ int HostPool::dump_monitoring(
     return PoolSQL::dump(oss, "MONITORING_DATA", cmd);
 }
 
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+
+HostMonitoringTemplate HostPool::get_monitoring(int hid)
+{
+    ostringstream cmd;
+    string monitor_str;
+
+    cmd << "SELECT " << one_db::host_monitor_table << ".body FROM "
+        << one_db::host_monitor_table
+        << " WHERE hid = " << hid
+        << " AND last_mon_time=(SELECT MAX(last_mon_time) FROM "
+        << one_db::host_monitor_table
+        << " WHERE hid = " << hid << ")";
+
+    HostMonitoringTemplate info;
+
+    if (PoolSQL::dump(monitor_str, "", cmd) == 0)
+    {
+        info.from_xml(monitor_str);
+    }
+
+    return info;
+}

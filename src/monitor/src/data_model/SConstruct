@@ -22,7 +22,6 @@ lib_name='nebula_data_model'
 
 # Sources to generate the library
 source_files=[
-    'HostMonitoringTemplate.cc',
     'HostBase.cc',
     'VirtualMachineBase.cc',
     'RPCPool.cc',

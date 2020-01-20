@@ -502,10 +502,6 @@ int VirtualMachine::select(SqlDB * db)
         return rc;
     }
 
-    // Get last monitoring record
-    auto vmpool = Nebula::instance().get_vmpool();
-    monitoring = vmpool->get_monitoring(oid);
-
     //Get History Records.
     if ( hasHistory() )
     {
@@ -2493,41 +2489,12 @@ int VirtualMachine::from_xml(const string &xml_str)
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
-// int VirtualMachine::update_info(const string& monitor_data)
-// {
-//     int    rc;
-//     string error;
-
-//     ostringstream oss;
-
-//     last_poll = time(0);
-
-//     rc = monitoring.update(monitor_data, error);
-
-//     if ( rc != 0)
-//     {
-//         oss << "Ignoring monitoring information, error:" << error
-//             << ". Monitor information was: " << monitor_data;
-
-//         NebulaLog::log("VMM", Log::ERROR, oss);
-
-//         set_template_error_message(oss.str());
-
-//         log("VMM", Log::ERROR, oss);
-
-//         return -1;
-//     }
-
-//     set_vm_info();
-
-//     clear_template_monitor_error();
-
-//     oss << "VM " << oid << " successfully monitored: " << monitor_data;
-
-//     NebulaLog::log("VMM", Log::DEBUG, oss);
-
-//     return 0;
-// };
+void VirtualMachine::load_monitoring()
+{
+    // Get last monitoring record
+    auto vmpool = Nebula::instance().get_vmpool();
+    monitoring = vmpool->get_monitoring(oid);
+}
 
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */

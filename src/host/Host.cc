@@ -15,6 +15,7 @@
 /* ------------------------------------------------------------------------ */
 
 #include "Host.h"
+#include "HostPool.h"
 #include "Nebula.h"
 #include "ClusterPool.h"
 #include "InformationManager.h"
@@ -281,6 +282,7 @@ string& Host::to_xml(string& xml) const
        host_share.to_xml(share_xml)  <<
        vm_collection.to_xml(vm_collection_xml) <<
        obj_template->to_xml(template_xml) <<
+       monitoring.to_xml() <<
     "</HOST>";
 
     xml = oss.str();
@@ -430,3 +432,12 @@ int Host::post_update_template(string& error)
 
     return 0;
 };
+
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+
+void Host::load_monitoring()
+{
+    auto hpool = Nebula::instance().get_hpool();
+    monitoring = hpool->get_monitoring(oid);
+}

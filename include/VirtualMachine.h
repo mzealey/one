@@ -297,12 +297,6 @@ public:
     };
 
     /**
-     *  Updates VM dynamic information (usage counters), and updates last_poll,
-     *  and copies it to history record for acct.
-     */
-    // int update_info(const string& monitor_data);
-
-    /**
      *  Clears the VM monitor information usage counters (MEMORY, CPU),
      *  last_poll, custom attributes, and copies it to the history record
      *  for acct.
@@ -320,6 +314,11 @@ public:
     {
         return monitoring;
     }
+
+    /**
+     *  Read monitoring from DB
+     */
+    void load_monitoring();
 
     /**
      *  Returns the deployment ID
@@ -1770,16 +1769,6 @@ private:
      *    @return 0 on success
      */
     static int bootstrap(SqlDB * db);
-
-    /**
-     *  Callback function to unmarshall a VirtualMachine object
-     *  (VirtualMachine::select)
-     *    @param num the number of columns read from the DB
-     *    @param names the column names
-     *    @param vaues the column values
-     *    @return 0 on success
-     */
-    int select_cb(void *nil, int num, char **names, char ** values);
 
     /**
      *  Execute an INSERT or REPLACE Sql query.
