@@ -49,12 +49,16 @@ class VirtualMachineDB
         status_str = ''
 
         time = Time.now.to_i
-        uthr = File.stat(@conf[:db_path]).mtime.to_i + (@conf[:period].to_i * 3)
+        last = @dataset.max(:timestamp)
         vms  = DomainList.state_info
 
         monitor_ids = []
 
-        force_update = time > uthr
+        if last
+            force_update = time > (last + 3 * @conf[:period].to_i)
+        else
+            force_update = false
+        end
 
         # ----------------------------------------------------------------------
         # report state changes in vms
@@ -100,6 +104,8 @@ class VirtualMachineDB
             # TODO: report once or replace this with %times
             if miss == @conf[:times_missing] || force_update
                 status_str << vm_to_status(vm_db, @conf[:missing_state])
+
+                @dataset.where(:id => id).delete if force_update
             end
 
             @dataset.where(:id => id).update(:timestamp => time,
