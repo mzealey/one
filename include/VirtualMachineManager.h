@@ -49,7 +49,7 @@ public:
         RESTORE,
         REBOOT,
         RESET,
-        POLL,
+        POLL,   // Obsolete
         DRIVER_CANCEL,
         ATTACH,
         DETACH,
@@ -275,10 +275,6 @@ private:
     // -------------------------------------------------------------------------
     // Action Listener interface
     // -------------------------------------------------------------------------
-    /**
-     *  This function is executed periodically to poll the running VMs
-     */
-    void timer_action(const ActionRequest& ar);
 
     void finalize_action(const ActionRequest& ar)
     {
@@ -413,14 +409,6 @@ private:
      */
     void reset_action(
         int vid);
-
-    /**
-     *  Polls a VM.
-     *    @param vid the id of the VM.
-     */
-    void poll_action(
-        int vid);
-
 
     /**
      * Attaches a new disk to a VM. The VM must have a disk with the
