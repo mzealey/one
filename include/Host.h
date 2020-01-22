@@ -333,6 +333,9 @@ private:
      */
     ObjectCollection vm_collection;
 
+    /**
+     *  Stores monitor information for the host
+     */
     HostMonitoringTemplate monitoring;
 
     // *************************************************************************
