@@ -40,23 +40,6 @@ public:
 };
 
 /**
- *  DatastoresMonitoring stores info about host datastores, the scheme is:
- *  <DS>
- *      <ID>
- *      <FREE_MB>
- *      <USED_MB>
- */
-class DatastoresMonitoring : public Template
-{
-public:
-    DatastoresMonitoring()
-        : Template(false, '=', "DATASTORES")
-    {}
-
-    int from_template(const Template &tmpl);
-};
-
-/**
  *  SystemMonitoring generic host monitoring info
  *  <DS>
  *      <ID>
@@ -76,7 +59,6 @@ public:
 /**
  *  HostMonitoringTemplate stores all host monitoring info, divided to 3 main sections:
  *  - capacity
- *  - datastores
  *  - system
  */
 class HostMonitoringTemplate
@@ -102,11 +84,10 @@ public:
     int from_template(const Template &tmpl);
 
 private:
-    time_t _timestamp;
-    int    _oid;
+    time_t _timestamp = 0;
+    int    _oid = -1;
 
     CapacityMonitoring capacity;
-    DatastoresMonitoring datastores;
     SystemMonitoring system;
 };
 

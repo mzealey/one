@@ -52,22 +52,6 @@ int CapacityMonitoring::from_template(const Template &tmpl)
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
-int DatastoresMonitoring::from_template(const Template &tmpl)
-{
-    vector<const VectorAttribute*> ds_att;
-    if (tmpl.get("DS", ds_att))
-    {
-        for (auto vattr : ds_att)
-        {
-            set(vattr->clone());
-        }
-    }
-    return 0;
-}
-
-/* -------------------------------------------------------------------------- */
-/* -------------------------------------------------------------------------- */
-
 int SystemMonitoring::from_template(const Template &tmpl)
 {
     int value;
@@ -91,8 +75,12 @@ int SystemMonitoring::from_template(const Template &tmpl)
 
 string HostMonitoringTemplate::to_xml() const
 {
+    if (_oid == -1)
+    {
+        return "<MONITORING/>";
+    }
+
     string capacity_s;
-    string datastores_s;
     string system_s;
 
     ostringstream oss;
@@ -102,7 +90,6 @@ string HostMonitoringTemplate::to_xml() const
     oss << xml_print(TIMESTAMP, _timestamp);
     oss << xml_print(ID, _oid);
     oss << capacity.to_xml(capacity_s);
-    oss << datastores.to_xml(datastores_s);
     oss << system.to_xml(system_s);
 
     oss << "</MONITORING>";
@@ -132,17 +119,6 @@ int HostMonitoringTemplate::from_xml(const std::string& xml_string)
     if (!content.empty())
     {
         capacity.from_xml_node(content[0]);
-
-        xml.free_nodes(content);
-        content.clear();
-    }
-
-    // ------------ Datastores ---------------
-    xml.get_nodes("/MONITORING/DATASTORES", content);
-
-    if (!content.empty())
-    {
-        datastores.from_xml_node(content[0]);
 
         xml.free_nodes(content);
         content.clear();
@@ -179,7 +155,6 @@ int HostMonitoringTemplate::from_template(const Template &tmpl)
     }
 
     int rc = capacity.from_template(tmpl);
-    rc += datastores.from_template(tmpl);
     rc += system.from_template(tmpl);
 
     return rc;
