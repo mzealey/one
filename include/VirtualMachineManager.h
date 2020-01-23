@@ -49,7 +49,6 @@ public:
         RESTORE,
         REBOOT,
         RESET,
-        POLL,   // Obsolete
         DRIVER_CANCEL,
         ATTACH,
         DETACH,
@@ -96,8 +95,6 @@ public:
 
     VirtualMachineManager(
         time_t                    _timer_period,
-        time_t                    _poll_period,
-        bool                      _do_vm_poll,
         int                       _vm_limit,
         vector<const VectorAttribute*>& _mads);
 
@@ -229,16 +226,6 @@ private:
      *  Timer period for the Virtual Machine Manager.
      */
     time_t                  timer_period;
-
-    /**
-     *  Virtual Machine polling interval
-     */
-    time_t                  poll_period;
-
-    /**
-     *  Perform pro-active VM monitoring
-     */
-    bool                    do_vm_poll;
 
     /**
      *  Virtual Machine polling limit

@@ -587,16 +587,12 @@ void Nebula::start(bool bootstrap_only)
     MadManager::mad_manager_system_init();
 
     time_t timer_period;
-    time_t monitor_interval_host;
     time_t monitor_interval_datastore;
     time_t monitor_interval_market;
-    time_t monitor_interval_vm;
 
     nebula_configuration->get("MANAGER_TIMER", timer_period);
-    nebula_configuration->get("MONITORING_INTERVAL_HOST", monitor_interval_host);
     nebula_configuration->get("MONITORING_INTERVAL_DATASTORE", monitor_interval_datastore);
     nebula_configuration->get("MONITORING_INTERVAL_MARKET", monitor_interval_market);
-    nebula_configuration->get("MONITORING_INTERVAL_VM", monitor_interval_vm);
 
     // ---- ACL Manager ----
     try
@@ -881,18 +877,12 @@ void Nebula::start(bool bootstrap_only)
             vector<const VectorAttribute *> vmm_mads;
             int    vm_limit;
 
-            bool   do_poll;
-
             nebula_configuration->get("VM_PER_INTERVAL", vm_limit);
 
             nebula_configuration->get("VM_MAD", vmm_mads);
 
-            nebula_configuration->get("VM_INDIVIDUAL_MONITORING", do_poll);
-
             vmm = new VirtualMachineManager(
                 timer_period,
-                monitor_interval_vm,
-                do_poll,
                 vm_limit,
                 vmm_mads);
         }

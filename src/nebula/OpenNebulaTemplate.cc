@@ -349,14 +349,12 @@ void OpenNebulaTemplate::set_conf_default()
 #-------------------------------------------------------------------------------
 #  MANAGER_TIMER
 #  MONITORING_INTERVAL_HOST
-#  MONITORING_INTERVAL_VM
 #  MONITORING_INTERVAL_MARKET
 #  MONITORING_INTERVAL_DATASTORE
 #  MONITORING_INTERVAL_DB_UPDATE
 #  MONITORING_THREADS
 #  DS_MONITOR_VM_DISK
 #  HOST_PER_INTERVAL
-#  VM_INDIVIDUAL_MONITORING
 #  VM_PER_INTERVAL
 #  VM_MONITORING_EXPIRATION_TIME
 #  LISTEN_ADDRESS
@@ -370,14 +368,12 @@ void OpenNebulaTemplate::set_conf_default()
 */
     set_conf_single("MANAGER_TIMER", "15");
     set_conf_single("MONITORING_INTERVAL_HOST", "180");
-    set_conf_single("MONITORING_INTERVAL_VM", "180");
     set_conf_single("MONITORING_INTERVAL_MARKET", "600");
     set_conf_single("MONITORING_INTERVAL_DATASTORE", "300");
     set_conf_single("MONITORING_INTERVAL_DB_UPDATE", "0");
     set_conf_single("MONITORING_THREADS", "50");
     set_conf_single("DS_MONITOR_VM_DISK", "10");
     set_conf_single("HOST_PER_INTERVAL", "15");
-    set_conf_single("VM_INDIVIDUAL_MONITORING", "no");
     set_conf_single("VM_PER_INTERVAL", "5");
     set_conf_single("VM_MONITORING_EXPIRATION_TIME", "14400");
     set_conf_single("PORT", "2633");

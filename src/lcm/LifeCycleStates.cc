@@ -113,7 +113,7 @@ void LifeCycleManager::revert_migrate_after_failure(VirtualMachine* vm)
     vmpool->update(vm);
 
     vm->log("LCM", Log::INFO, "Fail to save VM state while migrating."
-            " Assuming that the VM is still RUNNING (will poll VM).");
+            " Assuming that the VM is still RUNNING.");
 }
 
 /* -------------------------------------------------------------------------- */
@@ -235,7 +235,7 @@ void  LifeCycleManager::save_failure_action(int vid)
         vmpool->update(vm);
 
         vm->log("LCM", Log::INFO, "Fail to save VM state."
-                " Assuming that the VM is still RUNNING (will poll VM).");
+                " Assuming that the VM is still RUNNING.");
     }
     else
     {
@@ -382,7 +382,7 @@ void  LifeCycleManager::deploy_failure_action(int vid)
         vmpool->update(vm);
 
         vm->log("LCM", Log::INFO, "Fail to live migrate VM."
-                " Assuming that the VM is still RUNNING (will poll VM).");
+                " Assuming that the VM is still RUNNING.");
     }
     else if (vm->get_lcm_state() == VirtualMachine::BOOT)
     {
@@ -586,7 +586,7 @@ void  LifeCycleManager::shutdown_failure_action(int vid)
         vmpool->update(vm);
 
         vm->log("LCM", Log::INFO, "Fail to shutdown VM."
-                " Assuming that the VM is still RUNNING (will poll VM).");
+                " Assuming that the VM is still RUNNING.");
     }
     else if (vm->get_lcm_state() == VirtualMachine::SAVE_MIGRATE)
     {

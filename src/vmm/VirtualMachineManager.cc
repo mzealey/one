@@ -33,14 +33,10 @@
 
 VirtualMachineManager::VirtualMachineManager(
     time_t                          _timer_period,
-    time_t                          _poll_period,
-    bool                            _do_vm_poll,
     int                             _vm_limit,
     vector<const VectorAttribute*>&       _mads):
         MadManager(_mads),
         timer_period(_timer_period),
-        poll_period(_poll_period),
-        do_vm_poll(_do_vm_poll),
         vm_limit(_vm_limit)
 {
     Nebula& nd = Nebula::instance();
@@ -146,9 +142,6 @@ void VirtualMachineManager::user_action(const ActionRequest& ar)
         break;
         case VMMAction::MIGRATE:
             migrate_action(vid);
-        break;
-        case VMMAction::POLL:
-            // Obsolete
         break;
         case VMMAction::DRIVER_CANCEL:
             driver_cancel_action(vid);
