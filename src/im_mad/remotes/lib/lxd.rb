@@ -38,10 +38,10 @@ module LXD
 
             if @deploy_id =~ /^one-\d+/
                 @wild = false
-                @id = @container.name.split('-').last
+                @id   = @container.name.split('-').last
             else
                 @wild = true
-                @id = -1
+                @id   = -1
             end
 
             cgroup = ENV['LXC_CGROUP_PREFIX']
@@ -66,8 +66,8 @@ module LXD
             netrx = 0
             nettx = 0
 
-            @container.monitor['metadata']['network'].each do |interface, values|
-                next if interface == 'lo'
+            @container.monitor['metadata']['network'].each do |iface, values|
+                next if iface == 'lo'
 
                 netrx += values['counters']['bytes_received']
                 nettx += values['counters']['bytes_sent']
@@ -113,9 +113,9 @@ module LXD
             arch     = @container.architecture
             capacity = @container.expanded_config
 
-            cpu = ''
+            cpu  = ''
             vcpu = ''
-            mem = ''
+            mem  = ''
 
             if capacity
                 cpu  = capacity['limits.cpu.allowance']
@@ -126,18 +126,20 @@ module LXD
             cpu  = '50%'  if !cpu || cpu.empty?
             vcpu = '1'    if !vcpu || vcpu.empty?
             mem  = '512MB' if !mem || mem.empty?
+
             cpu = cpu.chomp('%').to_f / 100
             mem = parse_memory(mem)
 
-            template = <<EOT
-NAME="#{@deploy_id}"
-CPU=#{cpu}
-VCPU=#{vcpu}
-MEMORY=#{mem}
-HYPERVISOR="lxd"
-IMPORT_VM_ID="#{@deploy_id}"
-OS=[ARCH="#{arch}"]
-EOT
+            template = <<-EOT
+                NAME   = "#{@deploy_id}"
+                CPU    = #{cpu}
+                VCPU   = #{vcpu}
+                MEMORY = #{mem}
+                HYPERVISOR   = "lxd"
+                IMPORT_VM_ID = "#{@deploy_id}"
+                OS = [ ARCH="#{arch}" ]
+            EOT
+
             template
         end
 
@@ -164,6 +166,9 @@ EOT
 
 end
 
+# ------------------------------------------------------------------------------
+# This module includes function to get the list of LXC domains
+# ------------------------------------------------------------------------------
 module DomainList
 
     attr_accessor :domains
@@ -171,32 +176,8 @@ module DomainList
     def self.info
         containers = Container.get_all(LXD::CLIENT)
 
-        return unless containers
+        return '' unless containers
 
-        domains = init_domains(containers)
-
-        return if domains.empty?
-
-        usage_cpu(domains)
-
-        template_string(domains)
-    end
-
-    def self.wilds_info
-        import_templates = ''
-
-        Container.get_all(LXD::CLIENT).each do |container|
-            domain = LXD::Domain.new(container)
-
-            next unless domain.wild
-
-            import_templates << domain.wild_template_string
-        end
-
-        import_templates
-    end
-
-    def self.init_domains(containers)
         domains = []
 
         containers.each do |container|
@@ -211,22 +192,33 @@ module DomainList
             domains.push(domain)
         end
 
-        domains
-    end
+        return '' if domains.empty?
 
-    def self.template_string(domains)
-        metrics = {}
+        usage_cpu(domains)
+
         string = ''
 
         domains.each do |domain|
             next if domain.wild
 
-            metrics[domain.container.name] = domain.metrics
-
             string << domain.template_string
         end
 
         string
+    end
+
+    def self.wilds_info
+        import_templates = ''
+
+        Container.get_all(LXD::CLIENT).each do |container|
+            domain = LXD::Domain.new(container)
+
+            next unless domain.wild
+
+            import_templates << domain.wild_template_string
+        end
+
+        import_templates
     end
 
     def self.usage_cpu(domains)
@@ -247,6 +239,9 @@ module DomainList
         end
     end
 
+    # --------------------------------------------------------------------------
+    # Compute process and total system jiffies
+    # --------------------------------------------------------------------------
     module Jiffies
 
         def self.process(domain)

@@ -3,8 +3,20 @@
 require_relative '../../../lib/probe_db'
 require_relative '../../../lib/lxd'
 
+#  -----------------------------------------------------------
+#  This module implements the functions needed by probe_db.rb
+#  -----------------------------------------------------------
 module DomainList
+    # LXD to OpenNebula state mapping
+    STATE_MAP = {
+        'RUNNING' => 'RUNNING',
+        'FROZEN'  => 'PAUSED',
+        'STOPPED' => 'POWEROFF',
+        'FAILURE' => 'FAILURE',
+        'POWEROFF'=> 'POWEROFF'
+    }
 
+    # Returns a vm hash with the containers running in LXD
     def self.state_info
         containers = Container.get_all(LXD::CLIENT)
         return unless containers
@@ -12,19 +24,18 @@ module DomainList
         vms = {}
 
         containers.each do |container|
-            vm = {}
+            vm   = {}
             name = container.name
 
-            vm[:name] = name
-            vm[:uuid] = name # not applicable to LXD
+            next if container.config['user.one_status'] == '0'
+
+            vm[:name]  = name
             vm[:state] = one_status(container)
 
-            # Wilderness
-            if vm[:name] =~ /^one-(\d*)$/
-                vm[:id] = vm[:name].split('-').last
-            else
-                vm[:id] = -1
-            end
+            # return if wild
+            next unless vm[:name] =~ /^one-(\d*)$/
+
+            vm[:id] = vm[:name].split('-').last
 
             vms[name] = vm
         end
@@ -33,28 +44,12 @@ module DomainList
     end
 
     def self.one_status(container)
-        u = 'UNKNOWN'
+        state = STATE_MAP[container.status.upcase]
+        state ||= 'UNKNOWN'
 
-        begin
-            status = container.status.upcase
-        rescue StandardError
-            status = U
-        end
-
-        case status
-        when 'RUNNING'
-            status
-        when 'FROZEN'
-            'PAUSED'
-        when 'STOPPED'
-            'POWEROFF'
-
-            u if container.config['user.one_status'] == '0'
-        when 'FAILURE'
-            status
-        else
-            u
-        end
+        state
+    rescue StandardError
+        'UNKNOWN'
     end
 
 end
