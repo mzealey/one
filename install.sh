@@ -1070,6 +1070,7 @@ IM_PROBES_FILES="\
 
 IM_PROBES_LIB_FILES="\
     src/im_mad/remotes/lib/kvm.rb \
+    src/im_mad/remotes/lib/lxd.rb \
     src/im_mad/remotes/lib/linux.rb \
     src/im_mad/remotes/lib/numa_common.rb \
     src/im_mad/remotes/lib/probe_db.rb"
@@ -1123,6 +1124,7 @@ IM_PROBES_LXD_HOST_SYSTEM_FILES="\
      src/im_mad/remotes/lxd-probes.d/host/system/monitor_ds.rb \
      src/im_mad/remotes/lxd-probes.d/host/system/name.sh \
      src/im_mad/remotes/lxd-probes.d/host/system/numa_host.rb \
+     src/im_mad/remotes/lxd-probes.d/host/system/wild_vm.rb \
      src/im_mad/remotes/lxd-probes.d/host/system/pci.rb \
      src/im_mad/remotes/lxd-probes.d/host/system/profiles.sh \
      src/im_mad/remotes/lxd-probes.d/host/system/version.sh"

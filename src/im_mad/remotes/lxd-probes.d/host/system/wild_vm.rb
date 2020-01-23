@@ -2,4 +2,4 @@
 
 require_relative '../../../lib/lxd'
 
-puts DomainList.info
+puts DomainList.wilds_info
