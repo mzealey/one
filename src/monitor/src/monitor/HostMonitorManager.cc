@@ -23,6 +23,7 @@
 #include "DriverManager.h"
 #include "MonitorDriver.h"
 #include "UDPMonitorDriver.h"
+#include "TCPMonitorDriver.h"
 #include "OneMonitorDriver.h"
 
 #include <condition_variable>
@@ -40,18 +41,19 @@ HostMonitorManager::HostMonitorManager(
         VMRPCPool *        vmp,
         const std::string& addr,
         unsigned int       port,
-        unsigned int       threads,
+        unsigned int       _threads,
         const std::string& driver_path,
         int                timer_period,
         int                monitor_interval_host)
     : hpool(hp)
     , vmpool(vmp)
-    , udp_threads(threads)
+    , threads(_threads)
     , timer_period(timer_period)
     , monitor_interval_host(monitor_interval_host)
 {
     oned_driver    = new OneMonitorDriver(this);
     udp_driver     = new UDPMonitorDriver(addr, port);
+    tcp_driver     = new TCPMonitorDriver(addr, port);
     driver_manager = new driver_manager_t(driver_path);
 };
 
@@ -59,6 +61,7 @@ HostMonitorManager::~HostMonitorManager()
 {
     delete oned_driver;
     delete udp_driver;
+    delete tcp_driver;
     delete driver_manager;
 }
 
@@ -83,8 +86,13 @@ int HostMonitorManager::start(std::string& error)
         return -1;
     }
 
-    //Start UDP listener threads
-    if ( udp_driver->action_loop(udp_threads, error) == -1 )
+    //Start UDP & TCP listener threads
+    if ( udp_driver->action_loop(threads, error) == -1 )
+    {
+        return -1;
+    }
+
+    if ( tcp_driver->action_loop(threads, error) == -1 )
     {
         return -1;
     }
@@ -113,8 +121,10 @@ int HostMonitorManager::start(std::string& error)
 
     timer_thr.join();
 
-    //End UDP listener threads
+    //End UDP & TCP listener threads
     udp_driver->stop();
+
+    tcp_driver->stop();
 
     //End monitor drivers
     driver_manager->stop();

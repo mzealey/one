@@ -31,6 +31,7 @@ class DriverManager;
 class VMRPCPool;
 class OneMonitorDriver;
 class UDPMonitorDriver;
+class TCPMonitorDriver;
 class MonitorDriver;
 
 class Monitor;
@@ -134,11 +135,13 @@ private:
 
     UDPMonitorDriver* udp_driver;
 
+    TCPMonitorDriver* tcp_driver;
+
     HostRPCPool* hpool;
 
     VMRPCPool* vmpool;
 
-    unsigned int udp_threads;
+    unsigned int threads;
 
     /**
      *  Timer period for timer_action loop

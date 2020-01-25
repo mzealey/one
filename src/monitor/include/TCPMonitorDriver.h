@@ -14,18 +14,18 @@
 /* limitations under the License.                                             */
 /* -------------------------------------------------------------------------- */
 
-#ifndef UDP_MONITOR_DRIVER_H_
-#define UDP_MONITOR_DRIVER_H_
+#ifndef TCP_MONITOR_DRIVER_H_
+#define TCP_MONITOR_DRIVER_H_
 
 #include "MonitorDriverMessages.h"
 #include "MonitorDriverProtocol.h"
 
-class UDPMonitorDriver : public UDPStream<MonitorDriverMessages>
+class TCPMonitorDriver : public TCPStream<MonitorDriverMessages>
 {
 public:
 
-    UDPMonitorDriver(const std::string& a, unsigned int p)
-        :UDPStream<MonitorDriverMessages>(a, p)
+    TCPMonitorDriver(const std::string& a, unsigned int p)
+        :TCPStream<MonitorDriverMessages>(a, p)
     {
         register_action(MonitorDriverMessages::UNDEFINED,
                 &MonitorDriverProtocol::_undefined);
@@ -43,7 +43,7 @@ public:
                 &MonitorDriverProtocol::_state_vm);
     };
 
-   ~UDPMonitorDriver() = default;
+   ~TCPMonitorDriver() = default;
 };
 
-#endif // UDP_MONITOR_DRIVER_H_
+#endif // TCP_MONITOR_DRIVER_H_

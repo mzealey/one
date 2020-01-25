@@ -101,15 +101,14 @@ class VirtualMachineDB
 
             miss = vm_db[:missing]
 
-            # TODO: report once or replace this with %times
-            if miss == @conf[:times_missing] || force_update
+            if miss >= @conf[:times_missing] || force_update
                 status_str << vm_to_status(vm_db, @conf[:missing_state])
 
-                @dataset.where(:id => id).delete if force_update
+                @dataset.where(:id => id).delete
+            else
+                @dataset.where(:id => id).update(:timestamp => time,
+                                                 :missing   => miss + 1)
             end
-
-            @dataset.where(:id => id).update(:timestamp => time,
-                                             :missing   => miss + 1)
         end
 
         status_str

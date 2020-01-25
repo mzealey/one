@@ -18,6 +18,7 @@
 #define MONITOR_DRIVER_MESSAGES_H_
 
 #include "UDPStream.h"
+#include "TCPStream.h"
 
 /**
  * Messages between the Monitor daemon and drivers

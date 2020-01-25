@@ -41,9 +41,19 @@ class MonitorClient
     MESSAGE_STATUS = { true =>'SUCCESS', false => 'FAILURE' }.freeze
 
     MESSAGE_TYPES.each do |mt|
-        define_method(mt.downcase.to_sym) do |rc, payload|
+        define_method("#{mt}_udp".downcase.to_sym) do |rc, payload|
             msg = "#{mt} #{MESSAGE_STATUS[rc]} #{@hostid} #{pack(payload)}"
             @socket_udp.send(msg, 0)
+        end
+    end
+
+    MESSAGE_TYPES.each do |mt|
+        define_method("#{mt}_tcp".downcase.to_sym) do |rc, payload|
+            msg = "#{mt} #{MESSAGE_STATUS[rc]} #{@hostid} #{pack(payload)}"
+
+            socket_tcp = TCPSocket.new(@host, @port)
+            socket_tcp.send(msg, 0)
+            socket_tcp.close
         end
     end
 
@@ -59,8 +69,12 @@ class MonitorClient
 
         addr = Socket.getaddrinfo(server, port)[0]
 
-        @socket_udp = UDPSocket.new(addr[0])
-        @socket_udp.connect(addr[3], addr[1])
+        @family = addr[0]
+        @host   = addr[3]
+        @port   = addr[1]
+
+        @socket_udp = UDPSocket.new(@family)
+        @socket_udp.connect(@host, @port)
 
         @pubkey = @opts[:pubkey]
 
@@ -139,7 +153,7 @@ class ProbeRunner
     # each execution to optionally send the data to monitord
     def self.monitor_loop(hyperv, path, period, stdin, &block)
         # Failure retries, simple exponential backoff
-        sfail  = [1, 1, 1, 2, 4, 8, 16, 32]
+        sfail  = [1, 1, 1, 2, 4, 8, 8, 16, 32, 64]
         nfail  = 0
 
         runner = ProbeRunner.new(hyperv, path, stdin)
@@ -185,22 +199,22 @@ begin
     hyperv = ARGV[0].split(' ')[0]
 
     probes = {
-        :system_host => {
+        :system_host_udp => {
             :period => config.elements['PROBES_PERIOD/SYSTEM_HOST'].text.to_s,
             :path => 'host/system'
         },
 
-        :monitor_host => {
+        :monitor_host_udp => {
             :period => config.elements['PROBES_PERIOD/MONITOR_HOST'].text.to_s,
             :path => 'host/monitor'
         },
 
-        :state_vm => {
+        :state_vm_tcp => {
             :period => config.elements['PROBES_PERIOD/STATE_VM'].text.to_s,
             :path => 'vm/status'
         },
 
-        :monitor_vm => {
+        :monitor_vm_udp => {
             :period => config.elements['PROBES_PERIOD/MONITOR_VM'].text.to_s,
             :path => 'vm/monitor'
         }
@@ -233,9 +247,9 @@ end
 
 client = MonitorClient.new(host, port, hostid, :pubkey => pubkey)
 
-rc, data = ProbeRunner.run_once(hyperv, probes[:system_host][:path], xml_txt)
+rc, dt = ProbeRunner.run_once(hyperv, probes[:system_host_udp][:path], xml_txt)
 
-puts data
+puts dt
 
 STDOUT.flush
 
