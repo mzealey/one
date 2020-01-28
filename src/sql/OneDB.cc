@@ -57,12 +57,12 @@ namespace one_db
     const char * vm_table = "vm_pool";
 
     const char * vm_db_names =
-        "oid, name, body, uid, gid, last_poll, state, lcm_state, "
+        "oid, name, body, uid, gid, state, lcm_state, "
         "owner_u, group_u, other_u, short_body, search_token";
 
     const char * vm_db_bootstrap = "CREATE TABLE IF NOT EXISTS "
         "vm_pool (oid INTEGER PRIMARY KEY, name VARCHAR(128), body MEDIUMTEXT, "
-        "uid INTEGER, gid INTEGER, last_poll INTEGER, state INTEGER, "
+        "uid INTEGER, gid INTEGER, state INTEGER, "
         "lcm_state INTEGER, owner_u INTEGER, group_u INTEGER, other_u INTEGER, "
         "short_body MEDIUMTEXT, search_token MEDIUMTEXT";
 
