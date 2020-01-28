@@ -176,7 +176,7 @@ module DomainList
     def self.info
         containers = Container.get_all(LXD::CLIENT)
 
-        return '' unless containers
+        return '' if containers.empty?
 
         domains = []
 

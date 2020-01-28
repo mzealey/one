@@ -108,8 +108,6 @@ class Container
                 containers.push(get(name, nil, client))
             end
 
-            return if containers.empty?
-
             containers
         end
 
