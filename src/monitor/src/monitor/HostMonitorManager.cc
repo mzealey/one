@@ -318,15 +318,13 @@ void HostMonitorManager::start_monitor_failure(int oid)
     host->monitor_in_progress(false);
 
     oned_driver->host_state(oid, Host::state_to_str(Host::HostState::ERROR));
-
-    return;
 }
 
 /* -------------------------------------------------------------------------- */
 
 void HostMonitorManager::start_monitor_success(int oid)
 {
-    NebulaLog::info("HMM", "Successfully monitored host: " + to_string(oid));
+    NebulaLog::debug("HMM", "Start monitor success, host: " + to_string(oid));
 
     auto host = hpool->get(oid);
 
@@ -340,8 +338,6 @@ void HostMonitorManager::start_monitor_success(int oid)
     host->monitor_in_progress(false);
 
     oned_driver->host_state(oid, Host::state_to_str(Host::HostState::MONITORED));
-
-    return;
 }
 
 /* -------------------------------------------------------------------------- */
