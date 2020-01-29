@@ -797,8 +797,6 @@ MADS_LIB_FILES="src/mad/sh/madcommon.sh \
               src/im_mad/im_exec/one_im_exec \
               src/im_mad/im_exec/one_im_ssh \
               src/im_mad/im_exec/one_im_sh \
-              src/im_mad/dummy/one_im_dummy.rb \
-              src/im_mad/dummy/one_im_dummy \
               src/monitor/src/monitor/onemonitord \
               src/tm_mad/one_tm \
               src/tm_mad/one_tm.rb \
