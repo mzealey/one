@@ -16,34 +16,64 @@
 # limitations under the License.                                             #
 #--------------------------------------------------------------------------- #
 
-#Arguments: hypervisor(0)
+#--------------------------------------------------------------------------- #
+# Process Arguments
+#--------------------------------------------------------------------------- #
+ACTION="start"
 
-source $(dirname $0)/../scripts_common.sh
+if [ "$1" = "stop" ]; then
+    shift
+    ACTION="stop"
+fi
 
-export LANG=C
+ARGV=$*
 
-HYPERVISOR_DIR=$1.d
-ARGUMENTS=$*
+HID=$2
+HNAME=$3
 
-SCRIPTS_DIR=`dirname $0`
-cd $SCRIPTS_DIR
+STDIN=`cat -`
 
-function run_dir {
-    (
-    cd $1
-    for i in `ls *_control.sh`;do
-        if [ -x "$i" ]; then
-            ./$i stop $ARGUMENTS
-            EXIT_CODE=$?
-            if [ "x$EXIT_CODE" != "x0" ]; then
-                error_message "Error executing $i"
-                exit $EXIT_CODE
-            fi
-        fi
-    done
-    )
+# Directory that contains this file
+DIR=$(pwd)
+
+# Basename
+BASENAME=$(basename $0 _control.sh)
+
+# Collectd client (Ruby)
+CLIENT=$DIR/${BASENAME}.rb
+
+# Collectd client PID
+CLIENT_PID_FILE=/tmp/one-monitor-$HID.pid
+
+# Launch the client
+function start_client() {
+    echo "$STDIN" | base64 -d - | /usr/bin/env ruby $CLIENT $ARGV &
+
+    echo $! > $CLIENT_PID_FILE
+
+    sleep 10
+
+    ps axuww | grep "$CLIENT $ARGV" | grep -v grep > /dev/null 2>&1 || exit -1
 }
 
-if [ -d "$HYPERVISOR_DIR" ]; then
-    run_dir "$HYPERVISOR_DIR"
-fi
+# Stop the client
+function stop_client() {
+    local pids=$(ps axuww | grep "$CLIENT $ARGV" | grep -v grep | awk '{print $2}')
+
+    if [ -n "$pids" ]; then
+        kill -6 $pids
+    fi
+
+    rm -f $CLIENT_PID_FILE
+}
+
+case $ACTION in
+start)
+    stop_client
+    start_client
+    ;;
+
+stop)
+    stop_client
+    ;;
+esac

@@ -60,14 +60,17 @@ class InformationManagerDriver < OpenNebulaDriver
         register_action(:STOP_MONITOR, method('stop_monitor'))
     end
 
-    def start_monitor(_not_used, hostid, zaction64)
+    def start_monitor(_not_used, _hostid, zaction64)
         rc, input = parse_input(:START_MONITOR, zaction64)
 
         return if rc == -1
 
-        rc = update_remotes(:START_MONITOR, input[:host_id], input[:hostname])
+        if !action_is_local?(:START_MONITOR)
+            rc = update_remotes(:START_MONITOR, input[:host_id],
+                                input[:hostname])
 
-        return if rc == -1
+            return if rc == -1
+        end
 
         do_action(input[:im_mad],
                   input[:host_id],
@@ -234,7 +237,7 @@ begin
         when '--threads'
             threads = arg.to_i
         when '--local'
-            local_actions={ 'MONITOR' => nil }
+            local_actions={ 'START_MONITOR' => nil, 'STOP_MONITOR' => nil }
         when '--force-copy'
             force_copy=true
         when '--timeout'

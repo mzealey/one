@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env ruby
 
 # -------------------------------------------------------------------------- #
 # Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                #
@@ -15,35 +15,47 @@
 # See the License for the specific language governing permissions and        #
 # limitations under the License.                                             #
 #--------------------------------------------------------------------------- #
+def unindent(s)
+    m = s.match(/^(\s*)/)
+    spaces = m[1].size
+    s.gsub!(/^ {#{spaces}}/, '')
+end
 
-#Arguments: hypervisor(0)
+def topology(nodes, pages, mem)
+    st = ''
 
-source $(dirname $0)/../scripts_common.sh
+    nodes.times do |i|
+        pages.each do |p|
+            st << "HUGEPAGE = [ SIZE = \"#{p}\", FREE = \"1024\", "\
+                " NODE_ID = \"#{i}\"]\n"
+        end
 
-export LANG=C
+        memn = mem.to_i/nodes
 
-HYPERVISOR_DIR=$1.d
-ARGUMENTS=$*
+        st << "MEMORY_NODE = [ NODE_ID = \"#{i}\", FREE = \"#{rand(memn)}\","\
+            " USED = \"#{rand(memn)}\"]\n"
+    end
 
-SCRIPTS_DIR=`dirname $0`
-cd $SCRIPTS_DIR
+    st
+end
 
-function run_dir {
-    (
-    cd $1
-    for i in `ls *_control.sh`;do
-        if [ -x "$i" ]; then
-            ./$i stop $ARGUMENTS
-            EXIT_CODE=$?
-            if [ "x$EXIT_CODE" != "x0" ]; then
-                error_message "Error executing $i"
-                exit $EXIT_CODE
-            fi
-        fi
-    done
-    )
-}
+def system(cpu, mem)
+    used_memory = rand(mem)
+    used_cpu    = rand(cpu)
 
-if [ -d "$HYPERVISOR_DIR" ]; then
-    run_dir "$HYPERVISOR_DIR"
-fi
+    unindent(<<-EOS)
+        USEDMEMORY=#{used_memory}
+        FREEMEMORY=#{16777216-used_memory}
+        USEDCPU=#{used_cpu}
+        FREECPU=#{800-used_cpu}
+        NETTX=0
+        NETRX=0
+    EOS
+end
+
+result = ''
+
+result << topology(2, [2048, 1048576], 16777216)
+result << system(800, 16777216)
+
+puts result
