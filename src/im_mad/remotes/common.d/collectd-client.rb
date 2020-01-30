@@ -133,7 +133,7 @@ class ProbeRunner
 
             next unless File.executable?(probe_path)
 
-            o, e, s = Open3.capture3("#{probe_path} #{ARGV.join(' ').class}",
+            o, e, s = Open3.capture3("#{probe_path} #{ARGV.join(' ')}",
                                      :stdin_data => @stdin)
 
             data += o

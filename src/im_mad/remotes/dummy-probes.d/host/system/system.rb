@@ -127,9 +127,14 @@ def system
     EOS
 end
 
+def hostname
+    "HOSTNAME=#{ARGV[2]}\n"
+end
+
 result = ''
 
 result << system
+result << hostname
 result << topology(2, 8, [2048, 1048576], 4, 16777216)
 result << pci
 
