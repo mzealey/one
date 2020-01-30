@@ -58,8 +58,6 @@ vmpool.each do |vm|
     begin
         next if vm['HISTORY_RECORDS/HISTORY/HID'].to_i != hid.to_i
 
-        vm.info
-
         max_memory = 256
         if vm['TEMPLATE/MEMORY']
             max_memory = vm['TEMPLATE/MEMORY'].to_i * 1024
@@ -70,19 +68,11 @@ vmpool.each do |vm|
             max_cpu = vm['TEMPLATE/CPU'].to_i * 100
         end
 
-        prev_nettx = 0
-        if vm['MONITORING/NETTX']
-            prev_nettx = vm['MONITORING/NETTX'].to_i
-        end
-
-        prev_netrx = 0
-        if vm['MONITORING/NETRX']
-            prev_netrx = vm['MONITORING/NETRX'].to_i
-        end
+        base_net = Time.now.to_i % 10000
 
         mon_s = unindent(<<-EOS)
-          NETTX=#{prev_nettx+(50*rand(3))}
-          NETRX=#{prev_netrx+(100*rand(4))}
+          NETTX=#{base_net+(50*rand(3))}
+          NETRX=#{base_net+(100*rand(4))}
           MEMORY=#{max_memory * (rand(80)+20)/100}
           CPU=#{max_cpu * (rand(95)+5)/100}
           DISKRDBYTES=#{rand(1000)}
