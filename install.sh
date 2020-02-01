@@ -1106,7 +1106,8 @@ IM_PROBES_KVM_HOST_SYSTEM_FILES="\
      src/im_mad/remotes/kvm-probes.d/host/system/version.sh"
 
 IM_PROBES_KVM_VM_MONITOR_FILES="\
-     src/im_mad/remotes/kvm-probes.d/vms/monitor/poll.rb"
+     src/im_mad/remotes/kvm-probes.d/vms/monitor/poll.rb \
+     src/im_mad/remotes/kvm-probes.d/vms/monitor/monitor_ds_vm.rb"
 
 IM_PROBES_KVM_VM_STATUS_FILES="\
      src/im_mad/remotes/kvm-probes.d/vms/status/status.rb"
@@ -1155,7 +1156,8 @@ IM_PROBES_LXD_HOST_SYSTEM_FILES="\
      src/im_mad/remotes/lxd-probes.d/host/system/version.sh"
 
 IM_PROBES_LXD_VM_MONITOR_FILES="\
-     src/im_mad/remotes/lxd-probes.d/vms/monitor/poll.rb"
+     src/im_mad/remotes/lxd-probes.d/vms/monitor/poll.rb \
+     src/im_mad/remotes/lxd-probes.d/vms/monitor/monitor_ds_vm.rb"
 
 IM_PROBES_LXD_VM_STATUS_FILES="\
      src/im_mad/remotes/lxd-probes.d/vms/status/status.rb"

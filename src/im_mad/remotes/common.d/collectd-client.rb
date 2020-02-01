@@ -127,10 +127,12 @@ class ProbeRunner
     #   the failing probe
     def run_probes
         data = ''
+        dpro = Dir.new(@path)
 
-        Dir.each_child(@path) do |probe|
+        dpro.each do |probe|
             probe_path = File.join(@path, probe)
 
+            next unless File.file?(probe_path)
             next unless File.executable?(probe_path)
 
             o, e, s = Open3.capture3("#{probe_path} #{ARGV.join(' ')}",

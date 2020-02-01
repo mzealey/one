@@ -47,10 +47,6 @@ function start_client() {
     echo "$STDIN" | /usr/bin/env ruby $CLIENT $ARGV &
 
     echo $! > $CLIENT_PID_FILE
-
-    sleep 10
-
-    ps axuww | grep /collectd-client.rb | grep -v grep > /dev/null 2>&1 || exit -1
 }
 
 # Stop the client
@@ -58,7 +54,8 @@ function stop_client() {
     local pids=$(ps axuww | grep /collectd-client.rb | grep -v grep | awk '{print $2}')
 
     if [ -n "$pids" ]; then
-        kill -6 $pids
+        kill -9 $pids
+        sleep 5
     fi
 
     rm -f $CLIENT_PID_FILE

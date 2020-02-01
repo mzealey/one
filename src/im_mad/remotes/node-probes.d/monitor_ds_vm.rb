@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env ruby
 
 # -------------------------------------------------------------------------- #
 # Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                #
@@ -15,45 +15,46 @@
 # See the License for the specific language governing permissions and        #
 # limitations under the License.                                             #
 #--------------------------------------------------------------------------- #
+require 'rexml/document'
+require 'fileutils'
+require 'open3'
 
-#Arguments: hypervisor(0) ds_location(1) collectd_port(2) host_id(3) hostname(4)
+begin
+    xml_txt = STDIN.read
+    config = REXML::Document.new(xml_txt).root
+rescue StandardError => e
+    puts e.inspect
+    exit(-1)
+end
 
-source $(dirname $0)/../scripts_common.sh
+ds_location = config.elements['DATASTORE_LOCATION'].text.to_s
+ds_location ||= '/var/lib/one/datastores'
 
-export LANG=C
+Dir.chdir ds_location
 
-HYPERVISOR_DIR=$1.d
-ARGUMENTS=$*
-STDIN=`cat -`
+datastores = Dir.glob('*').select do |f|
+    File.directory?(f) && f.match(/^\d+$/)
+end
 
-SCRIPTS_DIR=`dirname $0`
-cd $SCRIPTS_DIR
+datastores.each do |ds|
+    # Skip if datastore is not marked for local monitoring
+    mark = "#{ds_location}/#{ds}/.monitor"
 
-function run_dir {
-    cd $1
-    for i in `ls * | grep -E -v '\.(rpmnew|rpmsave|dpkg-\w+)$'`;do
-        if [ -x "$i" ]; then
-            result=$(echo ${STDIN} | ./$i ${ARGUMENTS})
-            EXIT_CODE=$?
+    next unless File.exist? mark
 
-            if [ "x${EXIT_CODE}" != "x0" ]; then
-                error_message "Error executing $i: ${result}"
-                exit ${EXIT_CODE}
-            fi
+    driver = File.read mark
+    driver ||= 'ssh'
 
-            echo ${result}
-        fi
-    done
-}
+    driver.chomp!
 
-data=$(
-    if [ -d "$HYPERVISOR_DIR" ]; then
-        run_dir "$HYPERVISOR_DIR"
-    fi
-)
+    # NOTE: tm folder may not be defined relative for custom datastore_location
+    tm_script = "/var/tmp/one/tm/#{driver}/monitor_ds"
 
-EXIT_CODE=$?
+    next unless File.exist? tm_script
 
-echo "$data"
+    o, _e, s = Open3.capture3("#{tm_script} #{ds_location}/#{ds}")
 
-exit $EXIT_CODE
+    next unless s.exitstatus == 0
+
+    puts o
+end
