@@ -39,6 +39,9 @@ class DSMonitor
         end
 
         datastores.each do |ds_id|
+            # Skip if datastore is not marked for local monitoring
+            next unless File.exist? "#{@ds_location}/#{ds_id}/.monitor"
+
             puts ds_usage(ds_id)
         end
     end

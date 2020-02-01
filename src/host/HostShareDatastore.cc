@@ -56,14 +56,6 @@ void HostShareDatastore::set_monitorization(Template& ht)
             continue;
         }
 
-        int rc = ds_attr->vector_value("LOCAL_SYSTEM_DS", is_system_local);
-
-        if (rc != 0 || !is_system_local)
-        {
-            delete *it;
-            continue;
-        }
-
         set(*it);
     }
 }

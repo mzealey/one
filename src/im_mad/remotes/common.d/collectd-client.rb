@@ -135,12 +135,35 @@ class ProbeRunner
             next unless File.file?(probe_path)
             next unless File.executable?(probe_path)
 
-            o, e, s = Open3.capture3("#{probe_path} #{ARGV.join(' ')}",
-                                     :stdin_data => @stdin)
+            cmd = "#{probe_path} #{ARGV.join(' ')}"
 
-            data += o
+            o_, e_, s_ =  Open3.popen3(cmd) do |i, o, e, t|
 
-            return [-1, "Error executing #{probe}: #{e}"] if s.exitstatus != 0
+                out_reader = Thread.new { o.read }
+                err_reader = Thread.new { e.read }
+
+                begin
+                    i.write @stdin
+                rescue Errno::EPIPE
+                end
+
+                i.close
+
+                out = out_reader.value
+                err = err_reader.value
+                rc  = t.value
+
+                begin
+                    Process.waitpid(rc.pid)
+                rescue Errno::ECHILD
+                end
+
+                [out, err, rc]
+            end
+
+            data += o_
+
+            return [-1, "Error executing #{probe}: #{e_}"] if s_.exitstatus != 0
         end
 
         [0, data]
