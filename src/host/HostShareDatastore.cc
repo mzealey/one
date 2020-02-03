@@ -22,7 +22,6 @@
 
 void HostShareDatastore::set_monitorization(Template& ht)
 {
-    bool is_system_local;
     vector<Attribute *> vector_ds;
 
     // -------------------------------------------------------------------------
