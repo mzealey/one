@@ -28,7 +28,6 @@ void MonitorConfigTemplate::set_conf_default()
  LOG
  UDP_LISTENER
  PROBES_PERIOD
- DATASTORE_LOCATION
  */
 
     // Timers
@@ -47,8 +46,6 @@ void MonitorConfigTemplate::set_conf_default()
     va = new VectorAttribute("PROBES_PERIOD", {{"SYSTEM_HOST", "600"},
             {"MONITOR_HOST", "120"}, {"MONITOR_VM", "90"}, {"STATUS_VM", "10"}});
     conf_default.insert(make_pair(va->name(), va));
-
-    set_conf_single("DATASTORE_LOCATION", "/var/lib/one/datastores");
 }
 
 /* -------------------------------------------------------------------------- */

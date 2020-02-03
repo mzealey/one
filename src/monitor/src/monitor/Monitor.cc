@@ -50,6 +50,12 @@ void Monitor::start()
             conf_filename);
     }
 
+    string datastore_location;
+    if (oned_config.get("DATASTORE_LOCATION", datastore_location))
+    {
+        config->replace("DATASTORE_LOCATION", datastore_location);
+    }
+
     // Log system
     NebulaLog::LogType log_system = get_log_system(NebulaLog::STD);
     Log::MessageType clevel       = get_debug_level(Log::WARNING);
