@@ -17,6 +17,7 @@
 #include "Monitor.h"
 #include "MonitorDriver.h"
 #include "MonitorConfigTemplate.h"
+#include "OpenNebulaTemplate.h"
 #include "NebulaLog.h"
 #include "StreamManager.h"
 #include "SqliteDB.h"
@@ -33,12 +34,20 @@ void Monitor::start()
     // -------------------------------------------------------------------------
     // Configuration File
     // -------------------------------------------------------------------------
+    OpenNebulaTemplate oned_config(get_defaults_location(), oned_filename);
+    if (oned_config.load_configuration() != 0)
+    {
+        throw runtime_error("Error reading oned configuration file " +
+            oned_filename);
+    }
+
     config.reset(new MonitorConfigTemplate(get_defaults_location(),
                 conf_filename));
 
     if (config->load_configuration() != 0)
     {
-        throw runtime_error("Error reading configuration file.");
+        throw runtime_error("Error reading monitor configuration file" +
+            conf_filename);
     }
 
     // Log system
@@ -76,7 +85,7 @@ void Monitor::start()
     // -------------------------------------------------------------------------
     // Database
     // -------------------------------------------------------------------------
-    const VectorAttribute * _db = config->get("DB");
+    const VectorAttribute * _db = oned_config.get("DB");
 
     std::string db_backend = _db->vector_value("BACKEND");
 

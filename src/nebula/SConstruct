@@ -25,7 +25,6 @@ lib_name='nebula_core'
 source_files=[
     'SystemDB.cc',
     'Nebula.cc',
-    'OpenNebulaTemplate.cc'
 ]
 
 # Build library

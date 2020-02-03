@@ -28,7 +28,12 @@
 class Monitor : public NebulaService
 {
 public:
-    Monitor(const std::string& filename): conf_filename(filename) {};
+    Monitor(const std::string& filename, const std::string& oned_filename)
+        : conf_filename(filename)
+        , oned_filename(oned_filename)
+    {
+    }
+
     /**
      *  Read configuration file and starts monitornig. (Blocking call)
      */
@@ -52,6 +57,7 @@ private:
     //  Configuration attributes
     // -------------------------------------------------------------------------
     std::string conf_filename;
+    std::string oned_filename;
 };
 
 #endif // MONITOR_H_

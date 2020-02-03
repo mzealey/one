@@ -46,12 +46,14 @@ static void print_help()
          << "OPTIONS\n"
          << "  -v, --version\toutput version information and exit\n"
          << "  -h, --help\tdisplay this help and exit\n"
-         << "  -c, --config\tConfiguration file name (default monitord.conf)\n";
+         << "  -c, --config\tConfiguration file name (default monitord.conf)\n"
+         << "  -o, --oned-config\tOned configuration file name (default oned.conf)\n";
 }
 
 int main(int argc, char **argv)
 {
     std::string config = "monitord.conf";
+    std::string oned_config = "oned.conf";
 
     if ( argv[1] !=  0 )
     {
@@ -76,6 +78,7 @@ int main(int argc, char **argv)
             {"version",no_argument, 0, 'v'},
             {"help",   no_argument, 0, 'h'},
             {"config", no_argument, 0, 'c'},
+            {"oned-config", no_argument, 0, 'o'},
             {0,        0,           0, 0}
         };
 
@@ -98,6 +101,9 @@ int main(int argc, char **argv)
                 case 'c':
                     config = optarg;
                     break;
+                case 'o':
+                    oned_config = optarg;
+                    break;
                 default:
                     print_usage(cerr);
                     exit(-1);
@@ -108,7 +114,7 @@ int main(int argc, char **argv)
 
     try
     {
-        Monitor monitor(config);
+        Monitor monitor(config, oned_config);
         monitor.start();
     }
     catch (exception &e)

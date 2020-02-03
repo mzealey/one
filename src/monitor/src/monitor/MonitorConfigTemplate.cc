@@ -26,7 +26,6 @@ void MonitorConfigTemplate::set_conf_default()
  HOST_MONITORING_EXPIRATION_TIME
  VM_MONITORING_EXPIRATION_TIME
  LOG
- DB
  UDP_LISTENER
  PROBES_PERIOD
  DATASTORE_LOCATION
@@ -39,9 +38,6 @@ void MonitorConfigTemplate::set_conf_default()
     set_conf_single("VM_MONITORING_EXPIRATION_TIME", "43200");
 
     va = new VectorAttribute("LOG", {{"SYSTEM", "FILE"}, {"DEBUG_LEVEL", "3"}});
-    conf_default.insert(make_pair(va->name(), va));
-
-    va = new VectorAttribute("DB", {{"BACKEND", "sqlite"}});
     conf_default.insert(make_pair(va->name(), va));
 
     va = new VectorAttribute("UDP_LISTENER", {{"ADDRESS", "0.0.0.0"},
