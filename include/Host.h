@@ -282,6 +282,16 @@ public:
     }
 
     /**
+     *  Update reserved capacity according to cluster reservations
+     *    @param ccpu cluster reserved cpu
+     *    @param cmem cluster reserved mem
+     *
+     *    @return true capacity was updated,
+     *            false if host has its own reservations
+     */
+    bool update_reserved_capacity(const string& ccpu, const string& cmem);
+
+    /**
      *  Returns a copy of the VM IDs set
      */
     set<int> get_vm_ids()

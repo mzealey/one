@@ -127,3 +127,38 @@ void RequestManagerUpdateTemplate::request_execute(
 
     return;
 }
+
+/* ------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------- */
+
+int ClusterUpdateTemplate::extra_updates(PoolObjectSQL * obj)
+{
+    auto cluster = static_cast<Cluster*>(obj);
+
+    auto hosts = cluster->get_host_ids();
+    auto hpool = Nebula::instance().get_hpool();
+
+    string ccpu;
+    string cmem;
+
+    cluster->get_reserved_capacity(ccpu, cmem);
+
+    for (auto hid : hosts)
+    {
+        auto host = hpool->get(hid);
+
+        if (host == nullptr)
+        {
+            continue;
+        }
+
+        if (host->update_reserved_capacity(ccpu, cmem))
+        {
+            hpool->update(host);
+        }
+
+        host->unlock();
+    }
+
+    return 0;
+}

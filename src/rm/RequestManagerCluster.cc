@@ -230,14 +230,27 @@ void RequestManagerClusterHost::add_generic(
         return;
     }
 
+    cluster = clpool->get(cluster_id);
+
+    if ( cluster == 0 )
+    {
+        att.resp_obj = PoolObjectSQL::CLUSTER;
+        att.resp_id  = cluster_id;
+        failure_response(NO_EXISTS, att);
+        return;
+    }
+
     // ------------- Set new cluster id in object ---------------------
     host = hpool->get(host_id);
 
     if ( host == 0 )
     {
+        cluster->unlock();
+
         att.resp_obj = PoolObjectSQL::HOST;
         att.resp_id  = host_id;
         failure_response(NO_EXISTS, att);
+
         return;
     }
 
@@ -247,62 +260,34 @@ void RequestManagerClusterHost::add_generic(
     if ( old_cluster_id == cluster_id )
     {
         host->unlock();
+        cluster->unlock();
+
         success_response(cluster_id, att);
         return;
     }
 
+    // ------------- Add object to new cluster ---------------------
+    if ( clpool->add_to_cluster(PoolObjectSQL::HOST, cluster, host_id, att.resp_msg) < 0 )
+    {
+        host->unlock();
+        cluster->unlock();
+
+        return;
+    }
+
+    string ccpu;
+    string cmem;
+    cluster->get_reserved_capacity(ccpu, cmem);
+
+    cluster->unlock();
+
+
     host->set_cluster(cluster_id, cluster_name);
+    host->update_reserved_capacity(ccpu, cmem);
 
     hpool->update(host);
 
     host->unlock();
-
-    // ------------- Add object to new cluster ---------------------
-    cluster = clpool->get(cluster_id);
-
-    if ( cluster == 0 )
-    {
-        att.resp_obj = PoolObjectSQL::CLUSTER;
-        att.resp_id  = cluster_id;
-        failure_response(NO_EXISTS, att);
-
-        // Rollback
-        host = hpool->get(host_id);
-
-        if ( host != 0 )
-        {
-            host->set_cluster(old_cluster_id, old_cluster_name);
-
-            hpool->update(host);
-
-            host->unlock();
-        }
-
-        return;
-    }
-
-    if ( clpool->add_to_cluster(PoolObjectSQL::HOST, cluster, host_id, att.resp_msg) < 0 )
-    {
-        cluster->unlock();
-
-        failure_response(INTERNAL, att);
-
-        // Rollback
-        host = hpool->get(host_id);
-
-        if ( host != 0 )
-        {
-            host->set_cluster(old_cluster_id, old_cluster_name);
-
-            hpool->update(host);
-
-            host->unlock();
-        }
-
-        return;
-    }
-
-    cluster->unlock();
 
     // ------------- Remove host from old cluster ---------------------
 

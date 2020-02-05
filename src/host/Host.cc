@@ -402,6 +402,38 @@ void Host::reserved_capacity(string& rcpu, string& rmem) const
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
+bool Host::update_reserved_capacity(const string& ccpu, const string& cmem)
+{
+    string rcpu;
+    string rmem;
+
+    get_template_attribute("RESERVED_CPU", rcpu);
+    get_template_attribute("RESERVED_MEM", rmem);
+
+    if (!rcpu.empty() && !rmem.empty())
+    {
+        // Do not update reserved capacity from cluster, it's defined in host
+        return false;
+    }
+
+    if (rcpu.empty())
+    {
+        rcpu = ccpu;
+    }
+
+    if (rmem.empty())
+    {
+        rmem = cmem;
+    }
+
+    host_share.update_capacity(*obj_template, rcpu, rmem);
+
+    return true;
+}
+
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+
 int Host::post_update_template(string& error)
 {
     string new_im_mad;
