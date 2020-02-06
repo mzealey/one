@@ -279,8 +279,7 @@ void HostMonitorManager::monitor_host(int oid, bool result, const Template &tmpl
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 void HostMonitorManager::monitor_vm(int oid,
-                                    const Template &tmpl,
-                                    const std::string deploy_id)
+                                    const Template &tmpl)
 {
     VirtualMachineMonitorInfo monitoring(oid, time(nullptr));
 

@@ -52,19 +52,20 @@ void MonitorDriverProtocol::_monitor_vm(message_t msg)
         return;
     }
 
-    int id;
-    string deploy_id;
-    string monitor_b64;
-
     vector<VectorAttribute*> vms;
     tmpl.get("VM", vms);
+    map<int, Template> vms_templ;
+
+    // Merge all attributes by ID
     for (const auto& vm : vms)
     {
+        int id = -1;
+        string monitor_b64;
+
         if (vm->vector_value("ID", id) != 0)
         {
-            id = -1;
+            continue;
         }
-        vm->vector_value("DEPLOY_ID", deploy_id);
         vm->vector_value("MONITOR", monitor_b64);
 
         auto monitor_plain = one_util::base64_decode(monitor_b64);
@@ -82,10 +83,24 @@ void MonitorDriverProtocol::_monitor_vm(message_t msg)
                 free(error_msg);
                 continue;
             }
-
-            hm->monitor_vm(id, mon_tmpl, deploy_id);
             delete monitor_plain;
+
+            auto it = vms_templ.find(id);
+            if (it == vms_templ.end())
+            {
+                vms_templ.insert(make_pair(id, std::move(mon_tmpl)));
+            }
+            else
+            {
+                it->second.merge(&mon_tmpl);
+            }
         }
+    }
+
+    // Process all monitoring templates
+    for (const auto& vm : vms_templ)
+    {
+        hm->monitor_vm(vm.first, vm.second);
     }
 }
 

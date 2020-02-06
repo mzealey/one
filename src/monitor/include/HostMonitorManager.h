@@ -107,11 +107,9 @@ public:
      *    @param oid VM id
      *    @param result
      *    @param tmpl monitoring template
-     *    @param deploy_id
      */
     void monitor_vm(int oid,
-                    const Template &tmpl,
-                    const std::string deploy_id);
+                    const Template &tmpl);
 
     /**
      *  Receive start monitor failure/success from driver

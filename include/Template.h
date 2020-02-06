@@ -62,6 +62,14 @@ public:
         }
     }
 
+    Template(Template&& t) noexcept
+        : attributes(std::move(t.attributes))
+        , replace_mode(t.replace_mode)
+        , separator(t.separator)
+        , xml_root(std::move(t.xml_root))
+    {
+    }
+
     Template& operator=(const Template& t)
     {
         if (this != &t)
@@ -87,7 +95,7 @@ public:
         {
             replace_mode = t.replace_mode;
             separator    = t.separator;
-            xml_root     = t.xml_root;
+            xml_root     = std::move(t.xml_root);
 
             clear();
             attributes   = std::move(t.attributes);
