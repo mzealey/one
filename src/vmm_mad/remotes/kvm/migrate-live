@@ -1,0 +1,128 @@
+#!/bin/bash
+
+# -------------------------------------------------------------------------- #
+# Copyright 2020 1-grid.com                                                  #
+#                                                                            #
+# Licensed under the Apache License, Version 2.0 (the "License"); you may    #
+# not use this file except in compliance with the License. You may obtain    #
+# a copy of the License at                                                   #
+#                                                                            #
+# http://www.apache.org/licenses/LICENSE-2.0                                 #
+#                                                                            #
+# Unless required by applicable law or agreed to in writing, software        #
+# distributed under the License is distributed on an "AS IS" BASIS,          #
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   #
+# See the License for the specific language governing permissions and        #
+# limitations under the License.                                             #
+#--------------------------------------------------------------------------- #
+
+source $(dirname $0)/../../etc/vmm/kvm/kvmrc
+source $(dirname $0)/../../scripts_common.sh
+
+deploy_id=$1
+dest_host=$2
+src_host=$3
+
+# -------- Get datastore location from libvirt metadata ------------
+
+DRIVER_PATH=$(dirname $0)
+XPATH="${DRIVER_PATH}/../../datastore/xpath.rb --stdin"
+
+METADATA_XML=`virsh --connect $QEMU_PROTOCOL://$src_host/system metadata $deploy_id $LIBVIRT_MD_URI $LIBVIRT_MD_KEY`
+
+unset i XPATH_ELEMENTS
+
+while IFS= read -r -d '' element; do
+    XPATH_ELEMENTS[i++]="$element"
+done < <(echo "$METADATA_XML" | $XPATH /vm/system_datastore/)
+
+unset i
+
+DATASTORE_PATH="${XPATH_ELEMENTS[i++]}"
+if [ -z "$DATASTORE_PATH" ]; then
+    error_message "Cannot read 'system_datastore' from domain $DOMAIN"
+    exit 1
+fi
+
+# ------
+
+#set -x
+set -eo pipefail
+
+get_disks() {
+    # virsh migrate --copy-storage-* doesn't migrate read-only stuff like
+    # cdroms. This affects our context filesystem. By ignoring cdroms we just
+    # do them with rsync.
+    virsh --connect $QEMU_PROTOCOL://$src_host/system domblklist --details "$deploy_id" | strings | tail -n+3 | grep -v cdrom | awk '{print $4}' | tr '\n' ' '
+}
+
+get_size_and_backing_of_disk_img() {
+    qemu_img_path="$1"
+
+    cmd="
+qemu-img info -U '$qemu_img_path' --output json | sed -nE 's/^.*virtual-size.: ([0-9]+).*/\1/p';
+qemu-img info -U '$qemu_img_path' --output json | sed -nE 's/^.*\"format\": \"([^\"]+).*/\1/p';
+qemu-img info -U '$qemu_img_path' --output json | sed -nE 's/^.*\"backing-filename\": \"([^\"]+).*/\1/p';
+qemu-img info -U '$qemu_img_path' --output json | sed -nE 's/^.*\"backing-filename-format\": \"([^\"]+).*/\1/p';
+"
+    ssh_monitor_and_log "$src_host" "$cmd" "Failed to get image details for $qemu_img_path"
+}
+
+create_target_disk_img() {
+    qemu_img_path="$1"
+    size="$2"
+    format="$3"
+    backing_file="$4"
+    backing_file_format="$5"
+    CMD="qemu-img create -f '$format'"
+
+    if [ $format != 'qcow2' -a $format != 'raw' ]; then
+        echo "Unknown format $format - aborting migration"
+        exit 1
+    fi
+
+    # NOTE: Specifying the backing format is very important as libvirt requires
+    # this but in older versions (4.5.0) doesn't error if it has not been
+    # specified - see https://libvirt.org/kbase/backing_chains.html backing
+    # file format
+    [ -n "$backing_file" ] && CMD="$CMD -b '$backing_file' -F '$backing_file_format'"
+
+    ssh_monitor_and_log "$dest_host" "$CMD '$qemu_img_path' '$size' 2>&1" "Failed to create new qcow image for $qemu_img_path"
+}
+
+DISKS=$(get_disks)
+if [[ -z "$DISKS" ]]; then
+    echo "No disks discovered on remote host"
+    exit 1
+fi
+
+set -x
+
+# Copy all backing images etc and live copies of the latest disk images. dont
+# try syncing the actual disk images which we're going to nuke in the next
+# step.
+RSYNC_CMD=$(cat <<EOT
+excludes=""
+for disk in $DISKS; do
+    excludes="\$excludes --exclude=/\$(realpath --relative-to=$DATASTORE_PATH "\$disk")"
+done
+rsync --delete \$excludes -a $DATASTORE_PATH/ $dest_host:$DATASTORE_PATH/
+EOT
+)
+ssh_monitor_and_log "$src_host" "$RSYNC_CMD" "Failed to rsync $DATASTORE_PATH"
+
+# Then reset the latest disk images ready for live migrate
+for disk in $DISKS; do
+    create_target_disk_img "$disk" $(get_size_and_backing_of_disk_img "$disk")
+done
+ssh_monitor_and_log "$dest_host" "sync" "Failed to sync disk on $dest_host"
+
+MIGRATE_PROTOCOL=$QEMU_PROTOCOL
+# Think this is quicker than ssh when we have full connectivity
+MIGRATE_PROTOCOL=qemu+tcp
+
+virsh --connect $QEMU_PROTOCOL://$src_host/system \
+    migrate --live --copy-storage-inc $deploy_id $MIGRATE_OPTIONS $MIGRATE_PROTOCOL://$dest_host/system --verbose
+
+# Clean up the source images
+ssh_monitor_and_log "$src_host" "rm -fr $DATASTORE_PATH/" || exit 0
