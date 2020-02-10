@@ -118,7 +118,7 @@ define(function(require) {
       switch (value){
         case "fs":
           $("select#FORMAT_KVM", volatileContext).parent().show();
-          if($("select#FORMAT_KVM", volatileContext).val() === "qcow2"){
+          if($("select#FORMAT_KVM", volatileContext).val().startsWith("qcow2")){
             $("select#DRIVER", volatileContext).val("qcow2");
           }
           break;
@@ -135,7 +135,7 @@ define(function(require) {
       switch (value){
         case "fs":
           $("select#FORMAT_VCENTER", volatileContext).parent().show();
-          if($("select#FORMAT_VCENTER", volatileContext).val() === "qcow2"){
+          if($("select#FORMAT_VCENTER", volatileContext).val().startsWith("qcow2")){
             $("select#DRIVER", volatileContext).val("qcow2");
           }
           break;

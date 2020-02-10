@@ -1,0 +1,232 @@
+#!/bin/bash
+
+# -------------------------------------------------------------------------- #
+# Copyright 2020 1-grid.com                                                  #
+#                                                                            #
+# Licensed under the Apache License, Version 2.0 (the "License"); you may    #
+# not use this file except in compliance with the License. You may obtain    #
+# a copy of the License at                                                   #
+#                                                                            #
+# http://www.apache.org/licenses/LICENSE-2.0                                 #
+#                                                                            #
+# Unless required by applicable law or agreed to in writing, software        #
+# distributed under the License is distributed on an "AS IS" BASIS,          #
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   #
+# See the License for the specific language governing permissions and        #
+# limitations under the License.                                             #
+#--------------------------------------------------------------------------- #
+
+# snap_delete host:parent_image snap_id vmid ds_id
+
+SRC=$1
+SNAP_ID=$2
+VMID=$3
+DSID=$4
+
+if [ -z "${ONE_LOCATION}" ]; then
+    TMCOMMON=/var/lib/one/remotes/tm/tm_common.sh
+    DATASTORES=/var/lib/one/datastores
+else
+    TMCOMMON=$ONE_LOCATION/var/remotes/tm/tm_common.sh
+    DATASTORES=$ONE_LOCATION/var/datastores
+fi
+
+DRIVER_PATH=$(dirname $0)
+
+. $TMCOMMON
+source ${DRIVER_PATH}/../../etc/vmm/kvm/kvmrc
+
+SRC_PATH=$(arg_path $SRC)
+SRC_HOST=$(arg_host $SRC)
+
+#-------------------------------------------------------------------------------
+# Get Image information
+#-------------------------------------------------------------------------------
+
+DISK_ID=$(basename ${SRC} | cut -d. -f2)
+
+XPATH="${DRIVER_PATH}/../../datastore/xpath.rb --stdin"
+
+unset i j XPATH_ELEMENTS
+
+while IFS= read -r -d '' element; do
+    XPATH_ELEMENTS[i++]="$element"
+done < <(onevm show -x $VMID| $XPATH \
+                    /VM/TEMPLATE/DISK[DISK_ID=$DISK_ID]/SOURCE \
+                    /VM/TEMPLATE/DISK[DISK_ID=$DISK_ID]/CLONE \
+                    /VM/DEPLOY_ID)
+
+DISK_SRC="${XPATH_ELEMENTS[j++]}"
+CLONE="${XPATH_ELEMENTS[j++]}"
+DEPLOY_ID="${XPATH_ELEMENTS[j++]}"
+
+
+SYSTEM_DS_PATH=$(dirname ${SRC_PATH})
+SYSTEM_DS_DISK_PATH="${SYSTEM_DS_PATH}/disk.${DISK_ID}"
+IMAGE_DS_PATH=$(dirname ${DISK_SRC})
+
+#if [ "$CLONE" = "YES" ]; then
+    DISK_PATH="${SYSTEM_DS_PATH}/disk.${DISK_ID}"
+#else
+#    DISK_PATH=$DISK_SRC
+#fi
+
+SNAP_DIR="${DISK_PATH}.snap"
+SNAP_DIR_SHORT="$(basename ${SNAP_DIR})"
+
+SNAP_PATH="${SNAP_DIR}/${SNAP_ID}"
+
+# Catch all the domstats output including backing files. Find the path we want
+# to delete. Figure out what the backing index of the parent is and then search
+# for that.
+#
+# Export everything as environment variables. virsh is very sensitive to path
+# names it has to have exactly the right number of /'s etc to match properly so
+# we export everything that we find. NOTE: this depends on the fix-symlinks.py
+# deployment tweak so that we dont see a ../disk.0 symlink in the libvirt
+# config.
+PERL_CMD='
+use v5.10;
+use strict;
+use warnings;
+use Cwd "abs_path";
+use JSON "decode_json";
+
+my ($base_path, $snap_id_to_delete) = @ARGV;
+$base_path = abs_path $base_path;
+
+# If the snapshot was merged on top of another, follow that link to find the parent
+while( !-f "$base_path/$snap_id_to_delete" ) {
+    $snap_id_to_delete = readlink "$base_path/$snap_id_to_delete.real" // die "Could not find a real link";
+}
+my $parent_abs_path = "$base_path/$snap_id_to_delete";
+die "No parent snap found" if !-f $parent_abs_path;
+
+# Generate dependency graph for all snapshots backing files storing like parent
+# -> children in snap_chain.
+# virsh domstats will not list all if we previously did a revert
+my %snap_chain;
+my $no_backing_file;
+for my $path (map { abs_path $_ } grep { m!/\d+$! } glob "$base_path/*") {
+    my $out = `qemu-img info --output json -U $path` or die "No qemu-img output";
+    if( my $backing = decode_json($out)->{"backing-filename"} ) {
+        $backing = "$base_path/$backing" unless $backing =~ m!^/!;
+        $snap_chain{abs_path($backing)}{$path} = 1;
+    } else {
+        die "Multiple qcow files with no backing chain, probable corruption, not porgressing" if $no_backing_file;
+        $no_backing_file = $path;
+    }
+}
+
+# Process virsh domstats (if available)
+my @blocks;
+while(<STDIN>) {
+    my ($id, $type, $var) = /^\s+block\.(\d+)\.([^=]+)=(.*)/ or next;
+    $blocks[$id]{$type} = $var;
+    $blocks[$id]{abs_path} = abs_path $var if $type eq "path";
+}
+@blocks = grep { $_->{abs_path} =~ /^\Q$base_path/ } @blocks;
+die "Filtered block device names dont match" if grep { $_->{name} ne $blocks[0]{name} } @blocks;
+
+# Not sure why this happens, but after a live migration often the chain is
+# incomplete. The last entry of the chain reported by libvirt should always be
+# the entry without a backing file.
+die "Inconsistency: It looks like libvirt didnt report the whole backing chain - live migration issue?" if $blocks[-1]{abs_path} ne $no_backing_file;
+
+my $parent = (grep { $_->{abs_path} eq $parent_abs_path } @blocks)[0];
+
+# Deleting snapshot 2 effectively means merging data from snapshot 3 on top of
+# snapshot 2 and deleting file number 3. If we did a revert, then we may have 2
+# chains effectively as the root will point somewhere lower than the next
+# highest snapshot. In that case the non-active chain will not be known about
+# in virsh so we have to use the qemu-img dependency chain that we built
+# earlier.
+# order of snaps is root (current) -> .... -> delete (N+1) -> parent ...
+my ($parent_path, $delete_path);
+if( !@blocks || !$parent ) {     # either vm not running, or deleting a snapshot outside of the active chain
+    $parent_path = $parent_abs_path;
+    if( my @children = keys %{$snap_chain{$parent_path}} ) {
+        die "Parent snap ($parent_path) has multiple snapshots depending on it: @children\n" if @children > 1;
+        $delete_path = $children[0];
+    } else {
+        # Special case where we are on the head of a branch. We just want to
+        # delete the snap. In this case we cannot be active as you cannot
+        # request for the active snapshot to be deleted.
+        $delete_path = $parent_path;
+        undef $parent_path;
+    }
+} else {
+    $parent_path = $parent->{path};
+
+    # List of backing files for this disk in correct order with newest first
+    my @backing;
+    @backing[$_->{backingIndex} ||= 0] = $_ for @blocks;
+    for( my $i = 1; $i < @backing; $i++ ) {     # remove the libvirt images from backing chain as libvirt handles rebasing for us
+        delete $snap_chain{$backing[$i]{abs_path}}{$backing[$i-1]{abs_path}};
+    }
+
+    my $root_snap = $backing[0]{path} or die "No root found";
+    my $backing_delete_idx = $parent->{backingIndex} - 1;
+
+    die "Trying to delete invalid snap (top)" if $backing_delete_idx < 0;
+
+    $delete_path = $backing[$backing_delete_idx]{path} or die "No delete snap found";
+    my @deps = keys %{$snap_chain{$parent->{abs_path}}};
+    die "Parent snap ($parent->{abs_path}) still has other snapshots depending on it: @deps\n" if @deps;
+
+    say qq[ROOT_SNAP="$root_snap"];
+}
+say qq[PARENT_SNAP="$parent_path"] if $parent_path;
+say qq[DELETE_SNAP="$delete_path"];
+say q[TO_DELETE="] . abs_path($delete_path) . q["];
+
+# Add in any non libvirt images that need force-rebasing to the path of the deleted snapshot number
+say q[TO_REBASE=(] . join(" ", map { qq["$_"] } keys %{$snap_chain{abs_path $delete_path}}) . q[)];
+'
+
+CMD=$(cat <<EOT
+set -ex -o pipefail
+
+eval \$(virsh -c $LIBVIRT_URI domstats $DEPLOY_ID --backing --block | perl -e '$PERL_CMD' $SNAP_DIR $SNAP_ID)
+
+if [ -z "\$DELETE_SNAP" ]; then
+    echo "Error finding snapshot"
+    exit 1
+fi
+
+if [ -z "\$ROOT_SNAP" ]; then       # either virsh not running, or deleting from outside the active chain
+    # If no PARENT_SNAP is returned then we are just deleting the tip snapshot of a non-active chain so nothing to do
+    if [ -n "\$PARENT_SNAP" ]; then
+        qemu-img commit "\$DELETE_SNAP"       # Implies -b \$PARENT_SNAP
+
+        # virsh offline, deleting the active root image.
+        if [ \$(basename \$(readlink $SYSTEM_DS_DISK_PATH)) = \$(basename "\$TO_DELETE") ]; then
+            ln -sf "$SNAP_DIR_SHORT/\$(basename "\$PARENT_SNAP")" "$SYSTEM_DS_DISK_PATH"
+        fi
+    fi
+else
+    # We need to handle deleting the latest snapshot (ie merging root back to it) a bit differently
+    if [ "\$DELETE_SNAP" = "\$ROOT_SNAP" ]; then
+        virsh -c $LIBVIRT_URI blockcommit $DEPLOY_ID \$ROOT_SNAP 0 \$PARENT_SNAP --pivot --wait
+        ln -sf "$SNAP_DIR_SHORT/\$(basename "\$PARENT_SNAP")" "$SYSTEM_DS_DISK_PATH"
+    else
+        virsh -c $LIBVIRT_URI blockcommit $DEPLOY_ID \$ROOT_SNAP 0 \$PARENT_SNAP \$DELETE_SNAP --wait
+    fi
+fi
+rm "\$TO_DELETE"
+
+# Mark that this snapshot is now actually at the parent
+if [ -n "\$PARENT_SNAP" ]; then
+    ln -sf \$(basename "\$PARENT_SNAP") "\$TO_DELETE".real
+fi
+
+# Fix any other dependent snapshots to base to the correct image
+for REBASE_IMG in "\${TO_REBASE[@]}"; do
+    qemu-img rebase -u -b $SNAP_DIR_SHORT/\$(basename "\$PARENT_SNAP") "\$REBASE_IMG"
+done
+
+EOT
+)
+
+ssh_exec_and_log "${SRC_HOST}" "${CMD}" \
+                 "Error deleting snapshot ${SNAP_PATH}"

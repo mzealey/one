@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # -------------------------------------------------------------------------- #
 # Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                #
 #                                                                            #
@@ -14,6 +16,6 @@
 # limitations under the License.                                             #
 #--------------------------------------------------------------------------- #
 
-# Space separated list of VMM-TM pairs that support live disk snapshots. VMM
-# and TM must be separated by '-'
-LIVE_DISK_SNAPSHOTS="kvm-qcow2 kvm-ceph kvm-qcow2ssh"
+# TODO: Kill the data that was rsynced?
+
+exit 0

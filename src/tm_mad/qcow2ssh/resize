@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # -------------------------------------------------------------------------- #
 # Copyright 2002-2019, OpenNebula Project, OpenNebula Systems                #
 #                                                                            #
@@ -14,6 +16,31 @@
 # limitations under the License.                                             #
 #--------------------------------------------------------------------------- #
 
-# Space separated list of VMM-TM pairs that support live disk snapshots. VMM
-# and TM must be separated by '-'
-LIVE_DISK_SNAPSHOTS="kvm-qcow2 kvm-ceph kvm-qcow2ssh"
+# resize image size vmid
+
+SRC=$1
+SIZE=$2
+VMID=$3
+
+if [ -z "${ONE_LOCATION}" ]; then
+    TMCOMMON=/var/lib/one/remotes/tm/tm_common.sh
+    DATASTORES=/var/lib/one/datastores
+else
+    TMCOMMON=$ONE_LOCATION/var/remotes/tm/tm_common.sh
+    DATASTORES=$ONE_LOCATION/var/datastores
+fi
+
+. $TMCOMMON
+
+SRC_PATH=$(arg_path $SRC)
+SRC_HOST=$(arg_host $SRC)
+
+# for running VMs, leave disk resize on kvm/resize_disk
+if [ `lcm_state $VMID` -eq 62 ]; then
+    log "Not resizing disk ${SRC_PATH} for running virt. machine directly"
+    exit 0
+fi
+
+ssh_exec_and_log "${SRC_HOST}" "qemu-img resize ${SRC_PATH} ${SIZE}M" \
+                 "Error resizing image ${SRC_PATH}"
+hup_collectd $SRC_HOST

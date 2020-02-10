@@ -196,7 +196,7 @@ define(function(require) {
           }
 
           // Fill in the default driver
-          if (tm_mad == "qcow2"){
+          if (tm_mad.startsWith("qcow2")){
             $('select#img_driver',context).val("qcow2");
           } else {
             $('select#img_driver',context).val("raw");
